@@ -180,12 +180,12 @@ export class Player {
         let dx = 0, dz = 0;
 
         if (this.isKiller && camYaw !== null) {
-            // Fortnite TPP: movement relative to camera look angle
-            // Forward is where camera points on XZ plane
+            // TPP: movement relative to camera look angle
             const fwdX = Math.sin(camYaw);
             const fwdZ = Math.cos(camYaw);
-            const rightX = Math.cos(camYaw);
-            const rightZ = -Math.sin(camYaw);
+            // Right vector (perpendicular to forward: A moves left, D moves right)
+            const rightX = -fwdZ;
+            const rightZ = fwdX;
 
             dx = fwdX * (-inputZ) + rightX * inputX;
             dz = fwdZ * (-inputZ) + rightZ * inputX;

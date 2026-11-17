@@ -61,12 +61,12 @@ export class Game {
         this.camera = null;
         this.cameraOffset = { x: 0, y: 14, z: 10 };
 
-        // Fortnite TPP Camera for Olafo Killer
+        // TPP Camera for Olafo Killer (Centered, classic third-person)
         this.tppYaw = 0;
         this.tppPitch = 0.08;
-        this.tppDistance = 3.2;
-        this.tppShoulder = 0.55; // over-the-shoulder offset
-        this.tppHeight = 1.8;
+        this.tppDistance = 3.6;
+        this.tppShoulder = 0; // 0 = centered on Olafo
+        this.tppHeight = 2.0;
 
         // Pierog Twarog Skill [E]
         this.twarogPuddles = [];
@@ -302,6 +302,7 @@ export class Game {
             );
             player.isLocal = isLocal;
             player.setPosition(a.spawnX, a.spawnZ);
+            player.setVisible(true);
             this.players.set(a.id, player);
 
             if (isLocal) {
@@ -337,7 +338,6 @@ export class Game {
                 break;
             case GameState.PLAYING:
                 this._updatePlaying(dt);
-                this._updateLineOfSight();
                 break;
             case GameState.RESULTS:
                 this._updateResults(dt);
@@ -346,45 +346,6 @@ export class Game {
 
         // Update camera
         this._updateCamera(dt);
-    }
-
-    // Line-of-sight: Olafo / players cannot see survivors behind walls
-    _updateLineOfSight() {
-        if (!this.localPlayer || !this.localPlayer.alive || this.isSpectating) {
-            this.players.forEach(p => p.setVisible(true));
-            return;
-        }
-
-        if (!this.wallMeshes || this.wallMeshes.length === 0) return;
-
-        const myPos = this.localPlayer.position;
-        const origin = new THREE.Vector3(myPos.x, 1.2, myPos.z);
-
-        this.players.forEach((other) => {
-            if (other === this.localPlayer) return;
-
-            const target = new THREE.Vector3(other.position.x, 1.2, other.position.z);
-            const dir = new THREE.Vector3().subVectors(target, origin);
-            const dist = dir.length();
-
-            // Very close proximity (touching / around 1m)
-            if (dist < 1.0) {
-                other.setVisible(true);
-            } else {
-                dir.normalize();
-                this.raycaster.set(origin, dir);
-                this.raycaster.far = dist;
-
-                const intersects = this.raycaster.intersectObjects(this.wallMeshes, false);
-                if (intersects.length > 0 && intersects[0].distance < (dist - 0.3)) {
-                    // Wall occludes the player
-                    other.setVisible(false);
-                } else {
-                    // Direct line of sight
-                    other.setVisible(true);
-                }
-            }
-        });
     }
 
     _updateCountdown(dt) {

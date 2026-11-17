@@ -37,11 +37,10 @@ export class UI {
         this.killFeed = document.getElementById('kill-feed');
         this.spectatorBanner = document.getElementById('spectator-banner');
 
-        // Twarog Skill, Crosshair & Slow effects
+        // Twarog Skill & Slow effects
         this.twarogSkill = document.getElementById('hud-twarog-skill');
         this.twarogCooldownBar = document.getElementById('hud-twarog-cooldown-bar');
         this.twarogLabel = document.getElementById('hud-twarog-label');
-        this.crosshair = document.getElementById('hud-crosshair');
         this.slowedBanner = document.getElementById('hud-slowed-banner');
 
         // Overlays
@@ -142,11 +141,9 @@ export class UI {
         if (isKiller) {
             this.hudStaminaContainer.classList.add('hidden');
             if (this.twarogSkill) this.twarogSkill.classList.add('hidden');
-            if (this.crosshair) this.crosshair.classList.remove('hidden');
         } else {
             this.hudStaminaContainer.classList.remove('hidden');
             if (this.twarogSkill) this.twarogSkill.classList.remove('hidden');
-            if (this.crosshair) this.crosshair.classList.add('hidden');
         }
 
         if (this.slowedBanner) this.slowedBanner.classList.add('hidden');
@@ -155,7 +152,6 @@ export class UI {
 
     hideHUD() {
         this.hud.classList.add('hidden');
-        if (this.crosshair) this.crosshair.classList.add('hidden');
         if (this.slowedBanner) this.slowedBanner.classList.add('hidden');
     }
 

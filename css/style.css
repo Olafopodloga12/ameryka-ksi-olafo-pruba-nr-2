@@ -337,29 +337,6 @@ html, body {
     letter-spacing: 1px;
 }
 
-/* ========== OLAFO FORTNITE TPP CROSSHAIR ========== */
-.hud-crosshair {
-    position: absolute; top: 50%; left: 50%;
-    transform: translate(-50%, -50%);
-    width: 18px; height: 18px;
-    pointer-events: none;
-    z-index: 30;
-}
-.hud-crosshair::before, .hud-crosshair::after {
-    content: '';
-    position: absolute;
-    background: rgba(255,255,255,0.85);
-    box-shadow: 0 0 4px rgba(0,0,0,0.8);
-}
-.hud-crosshair::before {
-    top: 50%; left: 0; right: 0; height: 2px;
-    transform: translateY(-50%);
-}
-.hud-crosshair::after {
-    left: 50%; top: 0; bottom: 0; width: 2px;
-    transform: translateX(-50%);
-}
-
 /* ========== SLOWED DOWN NOTIFICATION ========== */
 .hud-slowed-banner {
     position: absolute; top: 120px; left: 50%;
