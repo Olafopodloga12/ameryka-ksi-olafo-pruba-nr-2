@@ -328,6 +328,34 @@ class App {
                 this.game.onKeyUp(e.code);
             }
         });
+
+        // Mouse controls for Olafo Fortnite TPP camera
+        const canvasContainer = document.getElementById('game-canvas-container');
+        let isMouseDown = false;
+
+        window.addEventListener('mousedown', (e) => {
+            isMouseDown = true;
+            // Lock pointer when playing as Olafo Killer for full Fortnite mouse feel
+            if (this.game && this.game.state === 'PLAYING' && this.game.myRole === 'killer') {
+                if (document.pointerLockElement !== document.body) {
+                    try {
+                        document.body.requestPointerLock();
+                    } catch (err) {}
+                }
+            }
+        });
+
+        window.addEventListener('mouseup', () => {
+            isMouseDown = false;
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (!this.game) return;
+
+            if (document.pointerLockElement === document.body || isMouseDown) {
+                this.game.onMouseMove(e.movementX || 0, e.movementY || 0);
+            }
+        });
     }
 
     async _createLobby() {

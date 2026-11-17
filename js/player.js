@@ -77,6 +77,7 @@ export class Player {
         this.staminaDrain = 0.3;   // per second
         this.staminaRegen = 0.15;  // per second
         this.isSprinting = false;
+        this.isSlowed = false; // slowed down by twarog
 
         // Store textures
         this.textureKiller = textureKiller;
@@ -165,16 +166,34 @@ export class Player {
         this.group.position.set(x, 0, z);
     }
 
-    // Update movement for local player
-    updateLocal(dt, keys) {
+    // Update movement for local player (camYaw used for Olafo Fortnite TPP)
+    updateLocal(dt, keys, camYaw = null) {
         if (!this.alive) return;
 
-        // Direction from input
+        // Raw input axes
+        let inputX = 0, inputZ = 0;
+        if (keys['KeyW'] || keys['ArrowUp']) inputZ -= 1;
+        if (keys['KeyS'] || keys['ArrowDown']) inputZ += 1;
+        if (keys['KeyA'] || keys['ArrowLeft']) inputX -= 1;
+        if (keys['KeyD'] || keys['ArrowRight']) inputX += 1;
+
         let dx = 0, dz = 0;
-        if (keys['KeyW'] || keys['ArrowUp']) dz = -1;
-        if (keys['KeyS'] || keys['ArrowDown']) dz = 1;
-        if (keys['KeyA'] || keys['ArrowLeft']) dx = -1;
-        if (keys['KeyD'] || keys['ArrowRight']) dx = 1;
+
+        if (this.isKiller && camYaw !== null) {
+            // Fortnite TPP: movement relative to camera look angle
+            // Forward is where camera points on XZ plane
+            const fwdX = Math.sin(camYaw);
+            const fwdZ = Math.cos(camYaw);
+            const rightX = Math.cos(camYaw);
+            const rightZ = -Math.sin(camYaw);
+
+            dx = fwdX * (-inputZ) + rightX * inputX;
+            dz = fwdZ * (-inputZ) + rightZ * inputX;
+        } else {
+            // Pieróg: classic top-down movement unchanged
+            dx = inputX;
+            dz = inputZ;
+        }
 
         // Normalize diagonal movement
         const len = Math.sqrt(dx * dx + dz * dz);
@@ -185,8 +204,11 @@ export class Player {
         let speed = this.baseSpeed;
 
         if (this.isKiller) {
-            // Killer always sprints
             if (this.isSprinting) speed *= this.sprintMultiplier;
+            // Twarog puddle slowdown
+            if (this.isSlowed) {
+                speed *= 0.42; // 58% speed reduction!
+            }
         } else {
             // Pierog has limited stamina
             if (this.isSprinting && this.stamina > 0 && len > 0) {
@@ -203,7 +225,7 @@ export class Player {
         // Apply velocity with smoothing
         const targetVX = dx * speed;
         const targetVZ = dz * speed;
-        const smoothing = 10;
+        const smoothing = 12;
         this.velocity.x += (targetVX - this.velocity.x) * Math.min(smoothing * dt, 1);
         this.velocity.z += (targetVZ - this.velocity.z) * Math.min(smoothing * dt, 1);
 

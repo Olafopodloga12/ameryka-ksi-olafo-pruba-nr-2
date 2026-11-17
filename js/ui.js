@@ -37,6 +37,13 @@ export class UI {
         this.killFeed = document.getElementById('kill-feed');
         this.spectatorBanner = document.getElementById('spectator-banner');
 
+        // Twarog Skill, Crosshair & Slow effects
+        this.twarogSkill = document.getElementById('hud-twarog-skill');
+        this.twarogCooldownBar = document.getElementById('hud-twarog-cooldown-bar');
+        this.twarogLabel = document.getElementById('hud-twarog-label');
+        this.crosshair = document.getElementById('hud-crosshair');
+        this.slowedBanner = document.getElementById('hud-slowed-banner');
+
         // Overlays
         this.countdownOverlay = document.getElementById('countdown-overlay');
         this.countdownNumber = document.getElementById('countdown-number');
@@ -134,15 +141,45 @@ export class UI {
 
         if (isKiller) {
             this.hudStaminaContainer.classList.add('hidden');
+            if (this.twarogSkill) this.twarogSkill.classList.add('hidden');
+            if (this.crosshair) this.crosshair.classList.remove('hidden');
         } else {
             this.hudStaminaContainer.classList.remove('hidden');
+            if (this.twarogSkill) this.twarogSkill.classList.remove('hidden');
+            if (this.crosshair) this.crosshair.classList.add('hidden');
         }
 
+        if (this.slowedBanner) this.slowedBanner.classList.add('hidden');
         this.spectatorBanner.classList.add('hidden');
     }
 
     hideHUD() {
         this.hud.classList.add('hidden');
+        if (this.crosshair) this.crosshair.classList.add('hidden');
+        if (this.slowedBanner) this.slowedBanner.classList.add('hidden');
+    }
+
+    updateTwarogCooldown(remaining, total) {
+        if (!this.twarogSkill) return;
+        if (remaining <= 0) {
+            this.twarogLabel.textContent = 'TWARÓG [E]: GOTOWY';
+            this.twarogCooldownBar.style.width = '100%';
+            this.twarogSkill.classList.add('ready');
+        } else {
+            this.twarogLabel.textContent = `TWARÓG [E]: ${remaining.toFixed(1)}s`;
+            const pct = Math.max(0, Math.min(100, ((total - remaining) / total) * 100));
+            this.twarogCooldownBar.style.width = `${pct}%`;
+            this.twarogSkill.classList.remove('ready');
+        }
+    }
+
+    showSlowedBanner(isSlowed) {
+        if (!this.slowedBanner) return;
+        if (isSlowed) {
+            this.slowedBanner.classList.remove('hidden');
+        } else {
+            this.slowedBanner.classList.add('hidden');
+        }
     }
 
     updateTimer(seconds) {

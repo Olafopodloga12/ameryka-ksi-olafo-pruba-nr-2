@@ -61,6 +61,19 @@ export class Game {
         this.camera = null;
         this.cameraOffset = { x: 0, y: 14, z: 10 };
 
+        // Fortnite TPP Camera for Olafo Killer
+        this.tppYaw = 0;
+        this.tppPitch = 0.08;
+        this.tppDistance = 3.2;
+        this.tppShoulder = 0.55; // over-the-shoulder offset
+        this.tppHeight = 1.8;
+
+        // Pierog Twarog Skill [E]
+        this.twarogPuddles = [];
+        this.twarogCooldown = 0;
+        this.TWAROG_COOLDOWN_TIME = 5.0;
+        this._twarogTexture = null;
+
         // Network tick timer
         this.netTickTimer = 0;
         this.netTickInterval = 1 / 20; // 20 Hz
@@ -166,6 +179,14 @@ export class Game {
             case 'player-killed':
                 // A player was killed
                 this._onPlayerKilled(data.victimId, data.killerName, data.victimName);
+                break;
+
+            case 'twarog-spawn':
+                // Someone spawned a twarog puddle on the ground
+                this._createTwarogMesh(data.id, data.x, data.z, data.radius, data.duration);
+                if (this.network.isHost) {
+                    this.network.broadcast('twarog-spawn', data);
+                }
                 break;
 
             case 'round-end':
@@ -386,13 +407,26 @@ export class Game {
     _updatePlaying(dt) {
         // Update local player
         if (this.localPlayer && this.localPlayer.alive) {
-            this.localPlayer.updateLocal(dt, this.keys);
+            // Pass tppYaw for Olafo so WASD moves in Fortnite camera direction
+            this.localPlayer.updateLocal(dt, this.keys, this.myRole === 'killer' ? this.tppYaw : null);
 
             // Update stamina UI
             if (this.myRole === 'pierog') {
                 this.ui.updateStamina(this.localPlayer.stamina);
             }
         }
+
+        // Update twarog skill cooldown
+        if (this.twarogCooldown > 0) {
+            this.twarogCooldown -= dt;
+            if (this.twarogCooldown < 0) this.twarogCooldown = 0;
+        }
+        if (this.myRole === 'pierog') {
+            this.ui.updateTwarogCooldown(this.twarogCooldown, this.TWAROG_COOLDOWN_TIME);
+        }
+
+        // Update twarog puddles and check slowdown on Olafo Killer
+        this._updateTwarogPuddles(dt);
 
         // Update remote players (interpolation)
         this.players.forEach((player) => {
@@ -427,6 +461,150 @@ export class Game {
             if (this.roundTimer <= 0) {
                 // Time's up — Pierogi win!
                 this._endRound('pierogi');
+            }
+        }
+    }
+
+    // === TWAROG MECHANIC ===
+
+    spawnTwarog(x, z) {
+        const id = 'twarog_' + Math.random().toString(36).substring(2, 9);
+        const radius = 2.4;
+        const duration = 12.0;
+
+        this._createTwarogMesh(id, x, z, radius, duration);
+
+        const payload = { id, x, z, radius, duration };
+        if (this.network.isHost) {
+            this.network.broadcast('twarog-spawn', payload);
+        } else {
+            this.network.sendToHost('twarog-spawn', payload);
+        }
+    }
+
+    _createTwarogMesh(id, x, z, radius, duration) {
+        // Prevent duplicate creation
+        if (this.twarogPuddles.find(p => p.id === id)) return;
+
+        const tex = this._getTwarogTexture();
+        const geo = new THREE.PlaneGeometry(radius * 2, radius * 2);
+        const mat = new THREE.MeshStandardMaterial({
+            map: tex,
+            transparent: true,
+            opacity: 0.95,
+            roughness: 0.9,
+            metalness: 0.05,
+            depthWrite: false
+        });
+
+        const mesh = new THREE.Mesh(geo, mat);
+        mesh.rotation.x = -Math.PI / 2;
+        mesh.rotation.z = Math.random() * Math.PI * 2; // random rotation
+        mesh.position.set(x, 0.025, z); // slightly above ground to prevent z-fighting
+        mesh.receiveShadow = true;
+        this.scene.add(mesh);
+
+        this.twarogPuddles.push({
+            id,
+            mesh,
+            x,
+            z,
+            radius,
+            life: duration,
+            maxLife: duration
+        });
+    }
+
+    _getTwarogTexture() {
+        if (this._twarogTexture) return this._twarogTexture;
+
+        const canvas = document.createElement('canvas');
+        canvas.width = 256;
+        canvas.height = 256;
+        const ctx = canvas.getContext('2d');
+
+        ctx.clearRect(0, 0, 256, 256);
+
+        // Radial gradient base
+        const grad = ctx.createRadialGradient(128, 128, 15, 128, 128, 115);
+        grad.addColorStop(0, 'rgba(255, 255, 255, 0.98)');
+        grad.addColorStop(0.65, 'rgba(250, 250, 245, 0.92)');
+        grad.addColorStop(0.85, 'rgba(240, 240, 230, 0.55)');
+        grad.addColorStop(1, 'rgba(240, 240, 230, 0)');
+
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        const points = 16;
+        for (let i = 0; i < points; i++) {
+            const angle = (i / points) * Math.PI * 2;
+            const r = 90 + Math.sin(angle * 4 + 1) * 14 + Math.cos(angle * 2) * 8;
+            const px = 128 + Math.cos(angle) * r;
+            const py = 128 + Math.sin(angle) * r;
+            if (i === 0) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+        }
+        ctx.closePath();
+        ctx.fill();
+
+        // Twarog curds / lumps (organic dots)
+        for (let j = 0; j < 55; j++) {
+            const angle = Math.random() * Math.PI * 2;
+            const dist = Math.random() * 75;
+            const cx = 128 + Math.cos(angle) * dist;
+            const cy = 128 + Math.sin(angle) * dist;
+            const cr = 2.5 + Math.random() * 4.5;
+
+            ctx.fillStyle = (j % 2 === 0) ? '#ffffff' : '#f7f5e4';
+            ctx.beginPath();
+            ctx.arc(cx, cy, cr, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        const tex = new THREE.CanvasTexture(canvas);
+        tex.colorSpace = THREE.SRGBColorSpace;
+        this._twarogTexture = tex;
+        return tex;
+    }
+
+    _updateTwarogPuddles(dt) {
+        if (!this.twarogPuddles.length) {
+            const killer = this.players.get(this.killerId);
+            if (killer) killer.isSlowed = false;
+            if (this.myRole === 'killer') this.ui.showSlowedBanner(false);
+            return;
+        }
+
+        // 1. Age and fade puddles
+        for (let i = this.twarogPuddles.length - 1; i >= 0; i--) {
+            const p = this.twarogPuddles[i];
+            p.life -= dt;
+
+            // Fade out in last 2 seconds
+            if (p.life < 2.0) {
+                p.mesh.material.opacity = Math.max(0, (p.life / 2.0) * 0.95);
+            }
+
+            if (p.life <= 0) {
+                this.scene.remove(p.mesh);
+                this.twarogPuddles.splice(i, 1);
+            }
+        }
+
+        // 2. Check collision with Olafo Killer
+        const killer = this.players.get(this.killerId);
+        if (killer && killer.alive) {
+            let isSlowed = false;
+            for (const p of this.twarogPuddles) {
+                const dist = Math.hypot(killer.position.x - p.x, killer.position.z - p.z);
+                if (dist < p.radius) {
+                    isSlowed = true;
+                    break;
+                }
+            }
+
+            killer.isSlowed = isSlowed;
+            if (this.myRole === 'killer') {
+                this.ui.showSlowedBanner(isSlowed);
             }
         }
     }
@@ -605,7 +783,7 @@ export class Game {
 
         if (this.isSpectating) {
             // Free camera for spectators
-            const speed = 8;
+            const speed = 12;
             if (this.keys['KeyW'] || this.keys['ArrowUp']) {
                 this.spectatorPos.x -= Math.sin(this.spectatorYaw) * speed * dt;
                 this.spectatorPos.z -= Math.cos(this.spectatorYaw) * speed * dt;
@@ -632,29 +810,69 @@ export class Game {
                 this.spectatorPos.z - Math.cos(this.spectatorYaw) * 5
             );
         } else if (this.localPlayer) {
-            // Third-person camera following local player
-            const targetX = this.localPlayer.position.x + this.cameraOffset.x;
-            const targetY = this.cameraOffset.y;
-            const targetZ = this.localPlayer.position.z + this.cameraOffset.z;
+            if (this.myRole === 'killer') {
+                // Fortnite Over-The-Shoulder TPP Camera for Olafo Killer
+                const cosP = Math.cos(this.tppPitch);
+                const sinP = Math.sin(this.tppPitch);
+                const sinY = Math.sin(this.tppYaw);
+                const cosY = Math.cos(this.tppYaw);
 
-            // Smooth camera follow
-            const smoothing = 5;
-            this.camera.position.x += (targetX - this.camera.position.x) * Math.min(smoothing * dt, 1);
-            this.camera.position.y += (targetY - this.camera.position.y) * Math.min(smoothing * dt, 1);
-            this.camera.position.z += (targetZ - this.camera.position.z) * Math.min(smoothing * dt, 1);
+                const camX = this.localPlayer.position.x - sinY * (this.tppDistance * cosP) + cosY * this.tppShoulder;
+                const camY = this.localPlayer.position.y + this.tppHeight + sinP * this.tppDistance;
+                const camZ = this.localPlayer.position.z - cosY * (this.tppDistance * cosP) - sinY * this.tppShoulder;
 
-            this.camera.lookAt(
-                this.localPlayer.position.x,
-                0,
-                this.localPlayer.position.z
-            );
+                this.camera.position.set(camX, camY, camZ);
+
+                // Aim target 25 units ahead
+                const lookDist = 25;
+                const targetX = this.localPlayer.position.x + sinY * (lookDist * cosP);
+                const targetY = this.localPlayer.position.y + this.tppHeight - sinP * lookDist;
+                const targetZ = this.localPlayer.position.z + cosY * (lookDist * cosP);
+
+                this.camera.lookAt(targetX, targetY, targetZ);
+            } else {
+                // Pieróg: Classic Top-Down / Isometric camera unchanged
+                const targetX = this.localPlayer.position.x + this.cameraOffset.x;
+                const targetY = this.cameraOffset.y;
+                const targetZ = this.localPlayer.position.z + this.cameraOffset.z;
+
+                const smoothing = 6;
+                this.camera.position.x += (targetX - this.camera.position.x) * Math.min(smoothing * dt, 1);
+                this.camera.position.y += (targetY - this.camera.position.y) * Math.min(smoothing * dt, 1);
+                this.camera.position.z += (targetZ - this.camera.position.z) * Math.min(smoothing * dt, 1);
+
+                this.camera.lookAt(
+                    this.localPlayer.position.x,
+                    0,
+                    this.localPlayer.position.z
+                );
+            }
         }
     }
 
     // === INPUT ===
 
+    onMouseMove(movementX, movementY) {
+        if (this.state === GameState.PLAYING && this.myRole === 'killer' && this.localPlayer && this.localPlayer.alive) {
+            this.tppYaw -= movementX * 0.003;
+            this.tppPitch -= movementY * 0.003;
+            // Clamp pitch (cannot look fully up or fully down)
+            this.tppPitch = Math.max(-0.45, Math.min(0.65, this.tppPitch));
+        }
+    }
+
     onKeyDown(code) {
         this.keys[code] = true;
+
+        // Pieróg paints twaróg puddle with 'E'
+        if (code === 'KeyE') {
+            if (this.myRole === 'pierog' && this.localPlayer && this.localPlayer.alive && this.state === GameState.PLAYING) {
+                if (this.twarogCooldown <= 0) {
+                    this.spawnTwarog(this.localPlayer.position.x, this.localPlayer.position.z);
+                    this.twarogCooldown = this.TWAROG_COOLDOWN_TIME;
+                }
+            }
+        }
     }
 
     onKeyUp(code) {
@@ -672,6 +890,16 @@ export class Game {
         this.players.clear();
         this.localPlayer = null;
         this.isSpectating = false;
+
+        // Clean all twarog puddles
+        this.twarogPuddles.forEach(p => {
+            if (p.mesh && p.mesh.parent) {
+                p.mesh.parent.remove(p.mesh);
+            }
+        });
+        this.twarogPuddles = [];
+        this.twarogCooldown = 0;
+        this.ui.showSlowedBanner(false);
     }
 
     _removeGamePlayer(peerId) {
