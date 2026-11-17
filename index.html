@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Olafo Killer vs Pierogi</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script>
+        window.addEventListener('error', function(e) {
+            console.error('GLOBAL ERROR:', e);
+            var errEl = document.getElementById('global-error-box');
+            if (errEl) {
+                errEl.style.display = 'block';
+                errEl.textContent = 'Błąd JS: ' + (e.message || e);
+            }
+        });
+        window.addEventListener('unhandledrejection', function(e) {
+            console.error('UNHANDLED REJECTION:', e);
+            var errEl = document.getElementById('global-error-box');
+            if (errEl) {
+                errEl.style.display = 'block';
+                errEl.textContent = 'Błąd sieci / asynchroniczny: ' + (e.reason ? (e.reason.message || e.reason) : e);
+            }
+        });
+    </script>
+    <script src="lib/peerjs.min.js"></script>
+</head>
+<body>
+    <div id="global-error-box" style="display:none; position:fixed; top:0; left:0; right:0; background:#ff2244; color:#fff; padding:12px; font-weight:bold; z-index:9999; text-align:center; font-family:sans-serif;"></div>
+    <!-- ============ MAIN MENU SCREEN ============ -->
+    <div id="screen-menu" class="screen active">
+        <div class="menu-container">
+            <h1 class="game-title">
+                <span class="title-killer">OLAFO KILLER</span>
+                <span class="title-vs">vs</span>
+                <span class="title-pierogi">PIEROGI</span>
+            </h1>
+            <div class="menu-form">
+                <label for="nickname-input">Twój nick:</label>
+                <input type="text" id="nickname-input" placeholder="Wpisz nick..." maxlength="16" value="">
+            </div>
+            <div class="menu-buttons">
+                <button id="btn-create" class="btn btn-primary">Stwórz Lobby</button>
+                <button id="btn-join-show" class="btn btn-secondary">Dołącz do Lobby</button>
+            </div>
+            <div id="join-section" class="join-section hidden">
+                <input type="text" id="room-code-input" placeholder="Wpisz kod pokoju..." maxlength="6">
+                <button id="btn-join" class="btn btn-primary">Dołącz</button>
+            </div>
+            <p id="menu-error" class="error-text hidden"></p>
+            <p id="menu-status" class="status-text hidden"></p>
+        </div>
+    </div>
+
+    <!-- ============ LOBBY SCREEN ============ -->
+    <div id="screen-lobby" class="screen">
+        <div class="lobby-container">
+            <h2>Lobby</h2>
+            <div class="room-code-display">
+                Kod pokoju: <span id="room-code-text" class="room-code"></span>
+            </div>
+            <div class="player-list-section">
+                <h3>Gracze (<span id="player-count">0</span>)</h3>
+                <ul id="player-list"></ul>
+            </div>
+            <button id="btn-start" class="btn btn-start hidden">Rozpocznij Rundę!</button>
+            <p id="lobby-status" class="status-text">Czekam na graczy...</p>
+            <button id="btn-leave" class="btn btn-danger">Opuść Lobby</button>
+        </div>
+    </div>
+
+    <!-- ============ GAME HUD ============ -->
+    <div id="screen-game" class="screen">
+        <div id="game-canvas-container"></div>
+
+        <!-- Countdown overlay -->
+        <div id="countdown-overlay" class="overlay hidden">
+            <span id="countdown-number" class="countdown-number">3</span>
+        </div>
+
+        <!-- HUD elements -->
+        <div id="hud" class="hidden">
+            <div id="hud-timer" class="hud-timer">60</div>
+            <div id="hud-role" class="hud-role"></div>
+            <div id="hud-alive" class="hud-alive">Pierogi: 0/0</div>
+            <div id="hud-stamina-container" class="hud-stamina-container hidden">
+                <div id="hud-stamina-bar" class="hud-stamina-bar"></div>
+                <span class="hud-stamina-label">Sprint</span>
+            </div>
+            <div id="kill-feed" class="kill-feed"></div>
+            <div id="spectator-banner" class="spectator-banner hidden">
+                <span>👻 OBSERWUJESZ</span>
+                <small>Użyj WASD + myszy, aby rozglądać się</small>
+            </div>
+        </div>
+
+        <!-- Round result overlay -->
+        <div id="result-overlay" class="overlay hidden">
+            <div id="result-content" class="result-content">
+                <h2 id="result-title"></h2>
+                <p id="result-subtitle"></p>
+                <div id="result-stats"></div>
+                <p class="result-countdown">Powrót do lobby za <span id="result-timer">5</span>s...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Red flash effect -->
+    <div id="red-flash" class="red-flash hidden"></div>
+
+    <!-- Scripts (ES modules) -->
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>
