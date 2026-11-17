@@ -1,6 +1,7 @@
 // ============================================================
 // game.js — Game state machine, round logic, host authority
 // ============================================================
+import * as THREE from '../lib/three.module.js';
 import { Player } from './player.js';
 
 // Game states
@@ -12,17 +13,21 @@ export const GameState = {
 };
 
 // Kill distance threshold
-const KILL_DISTANCE = 1.5;
+const KILL_DISTANCE = 1.6;
 const ROUND_TIME = 60; // seconds
 const COUNTDOWN_TIME = 3;
 const RESULT_TIME = 5;
 
-// Spawn positions for up to 4 players
+// Spawn positions across the large 50x50 arena
 const SPAWN_POSITIONS = [
-    { x: -7, z: -7 },
-    { x:  7, z: -7 },
-    { x: -7, z:  7 },
-    { x:  7, z:  7 },
+    { x: -18, z: -18 },
+    { x:  18, z: -18 },
+    { x: -18, z:  18 },
+    { x:  18, z:  18 },
+    { x:   0, z: -18 },
+    { x:   0, z:  18 },
+    { x: -18, z:   0 },
+    { x:  18, z:   0 },
 ];
 
 export class Game {
@@ -54,7 +59,7 @@ export class Game {
 
         // Camera ref (set from main.js)
         this.camera = null;
-        this.cameraOffset = { x: 0, y: 10, z: 8 };
+        this.cameraOffset = { x: 0, y: 14, z: 10 };
 
         // Network tick timer
         this.netTickTimer = 0;
@@ -64,9 +69,17 @@ export class Game {
         this.isSpectating = false;
         this.spectatorYaw = 0;
         this.spectatorPitch = -0.5;
-        this.spectatorPos = { x: 0, y: 8, z: 0 };
+        this.spectatorPos = { x: 0, y: 10, z: 0 };
+
+        // Line-of-sight & wall occlusion
+        this.wallMeshes = [];
+        this.raycaster = new THREE.Raycaster();
 
         this._setupNetworkHandlers();
+    }
+
+    setObstacleMeshes(meshes) {
+        this.wallMeshes = meshes || [];
     }
 
     setTextures(killer, pierog, dead) {
@@ -303,6 +316,7 @@ export class Game {
                 break;
             case GameState.PLAYING:
                 this._updatePlaying(dt);
+                this._updateLineOfSight();
                 break;
             case GameState.RESULTS:
                 this._updateResults(dt);
@@ -311,6 +325,45 @@ export class Game {
 
         // Update camera
         this._updateCamera(dt);
+    }
+
+    // Line-of-sight: Olafo / players cannot see survivors behind walls
+    _updateLineOfSight() {
+        if (!this.localPlayer || !this.localPlayer.alive || this.isSpectating) {
+            this.players.forEach(p => p.setVisible(true));
+            return;
+        }
+
+        if (!this.wallMeshes || this.wallMeshes.length === 0) return;
+
+        const myPos = this.localPlayer.position;
+        const origin = new THREE.Vector3(myPos.x, 1.2, myPos.z);
+
+        this.players.forEach((other) => {
+            if (other === this.localPlayer) return;
+
+            const target = new THREE.Vector3(other.position.x, 1.2, other.position.z);
+            const dir = new THREE.Vector3().subVectors(target, origin);
+            const dist = dir.length();
+
+            // Very close proximity (touching / around 1m)
+            if (dist < 1.0) {
+                other.setVisible(true);
+            } else {
+                dir.normalize();
+                this.raycaster.set(origin, dir);
+                this.raycaster.far = dist;
+
+                const intersects = this.raycaster.intersectObjects(this.wallMeshes, false);
+                if (intersects.length > 0 && intersects[0].distance < (dist - 0.3)) {
+                    // Wall occludes the player
+                    other.setVisible(false);
+                } else {
+                    // Direct line of sight
+                    other.setVisible(true);
+                }
+            }
+        });
     }
 
     _updateCountdown(dt) {

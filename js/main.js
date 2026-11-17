@@ -18,6 +18,8 @@ class App {
         this.camera = null;
         this.renderer = null;
         this.game = null;
+        this.wallMeshes = [];
+        this.playerLight = null;
 
         this.textures = {
             killer: this._createFallbackTexture('#ff4444', 'OLAFO'),
@@ -72,16 +74,16 @@ class App {
 
         // Scene
         this.scene = new THREE.Scene();
-        this.scene.background = new THREE.Color(0x1a1a2e);
-        this.scene.fog = new THREE.FogExp2(0x1a1a2e, 0.02);
+        this.scene.background = new THREE.Color(0x121324);
+        this.scene.fog = new THREE.FogExp2(0x121324, 0.015);
 
         // Camera
         const aspect = window.innerWidth / window.innerHeight;
-        this.camera = new THREE.PerspectiveCamera(60, aspect, 0.1, 150);
-        this.camera.position.set(0, 12, 10);
+        this.camera = new THREE.PerspectiveCamera(60, aspect, 0.1, 200);
+        this.camera.position.set(0, 14, 11);
         this.camera.lookAt(0, 0, 0);
 
-        // Renderer
+        // Renderer with soft shadow maps
         this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
         this.renderer.setSize(window.innerWidth, window.innerHeight);
         this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -89,28 +91,35 @@ class App {
         this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         container.appendChild(this.renderer.domElement);
 
-        // Lights
-        const ambient = new THREE.AmbientLight(0xffffff, 0.7);
+        // Ambient Light (atmospheric, dark so shadows look prominent!)
+        const ambient = new THREE.AmbientLight(0xffffff, 0.45);
         this.scene.add(ambient);
 
-        const dirLight = new THREE.DirectionalLight(0xfff5e6, 1.0);
-        dirLight.position.set(12, 20, 10);
+        // Sun / Main Shadow Casting Directional Light
+        const dirLight = new THREE.DirectionalLight(0xffedd4, 1.1);
+        dirLight.position.set(30, 45, 25);
         dirLight.castShadow = true;
-        dirLight.shadow.mapSize.width = 1024;
-        dirLight.shadow.mapSize.height = 1024;
-        dirLight.shadow.camera.near = 0.5;
-        dirLight.shadow.camera.far = 50;
-        const d = 15;
+        dirLight.shadow.mapSize.width = 2048;
+        dirLight.shadow.mapSize.height = 2048;
+        dirLight.shadow.camera.near = 1;
+        dirLight.shadow.camera.far = 120;
+        const d = 35;
         dirLight.shadow.camera.left = -d;
         dirLight.shadow.camera.right = d;
         dirLight.shadow.camera.top = d;
         dirLight.shadow.camera.bottom = -d;
+        dirLight.shadow.bias = -0.0005;
         this.scene.add(dirLight);
 
-        // Fill light
-        const fillLight = new THREE.DirectionalLight(0x4466aa, 0.4);
-        fillLight.position.set(-10, 8, -10);
+        // Secondary rim/fill light (cool blue accent)
+        const fillLight = new THREE.DirectionalLight(0x3a5585, 0.35);
+        fillLight.position.set(-25, 20, -25);
         this.scene.add(fillLight);
+
+        // Dynamic light following the player
+        this.playerLight = new THREE.PointLight(0xffeedd, 1.2, 18, 1.5);
+        this.playerLight.position.set(0, 3, 0);
+        this.scene.add(this.playerLight);
 
         // Build 3D Arena
         this._buildArena();
@@ -126,65 +135,68 @@ class App {
     }
 
     _buildArena() {
-        const arenaSize = 20;
+        this.wallMeshes = [];
+        const arenaSize = 50;
 
         // Ground floor
         const floorGeo = new THREE.PlaneGeometry(arenaSize, arenaSize);
         const floorMat = new THREE.MeshStandardMaterial({
-            color: 0x1f3b2b,
-            roughness: 0.8,
-            metalness: 0.1
+            color: 0x182c20, // dark moss green
+            roughness: 0.85,
+            metalness: 0.05
         });
         const floor = new THREE.Mesh(floorGeo, floorMat);
         floor.rotation.x = -Math.PI / 2;
         floor.receiveShadow = true;
         this.scene.add(floor);
 
-        // Grid lines
-        const grid = new THREE.GridHelper(arenaSize, 20, 0xe94560, 0x2e4a3d);
+        // Grid lines across the large floor
+        const grid = new THREE.GridHelper(arenaSize, 50, 0xe94560, 0x223d2e);
         grid.position.y = 0.01;
         this.scene.add(grid);
 
         // Outer Boundary Walls
-        const wallMat = new THREE.MeshStandardMaterial({
-            color: 0x0f3460,
+        const outerWallMat = new THREE.MeshStandardMaterial({
+            color: 0x0c2540,
             roughness: 0.5,
-            metalness: 0.2
-        });
-        const wallHeight = 2.0;
-        const wallThickness = 0.8;
-        const offset = ARENA_HALF + (wallThickness / 2);
-
-        this._createWall(arenaSize + wallThickness * 2, wallHeight, wallThickness, 0, wallHeight / 2, -offset, wallMat);
-        this._createWall(arenaSize + wallThickness * 2, wallHeight, wallThickness, 0, wallHeight / 2, offset, wallMat);
-        this._createWall(wallThickness, wallHeight, arenaSize, -offset, wallHeight / 2, 0, wallMat);
-        this._createWall(wallThickness, wallHeight, arenaSize, offset, wallHeight / 2, 0, wallMat);
-
-        // Obstacles
-        const obsMat = new THREE.MeshStandardMaterial({
-            color: 0x533483,
-            roughness: 0.4,
             metalness: 0.3
         });
-        const obsHighlightMat = new THREE.MeshStandardMaterial({
-            color: 0xe94560,
-            roughness: 0.3,
-            metalness: 0.5
+        const wallHeight = 3.5;
+        const wallThickness = 1.0;
+        const offset = ARENA_HALF + (wallThickness / 2);
+
+        this._createWall(arenaSize + wallThickness * 2, wallHeight, wallThickness, 0, wallHeight / 2, -offset, outerWallMat);
+        this._createWall(arenaSize + wallThickness * 2, wallHeight, wallThickness, 0, wallHeight / 2, offset, outerWallMat);
+        this._createWall(wallThickness, wallHeight, arenaSize, -offset, wallHeight / 2, 0, outerWallMat);
+        this._createWall(wallThickness, wallHeight, arenaSize, offset, wallHeight / 2, 0, outerWallMat);
+
+        // Inner Obstacles & Walls (maze/rooms)
+        const obsMatA = new THREE.MeshStandardMaterial({
+            color: 0x3d2459, // deep purple
+            roughness: 0.45,
+            metalness: 0.2
         });
+        const obsMatB = new THREE.MeshStandardMaterial({
+            color: 0x1f3c58, // deep navy
+            roughness: 0.45,
+            metalness: 0.2
+        });
+        const trimMat = new THREE.MeshBasicMaterial({ color: 0xffcc00 });
 
         OBSTACLES.forEach((obs, index) => {
-            const h = 2.0;
+            const h = 3.2; // Taller than players (2.0) to cast shadows and fully block sight
             const geo = new THREE.BoxGeometry(obs.w, h, obs.d);
-            const mat = (index % 2 === 0) ? obsMat : obsHighlightMat;
+            const mat = (index % 2 === 0) ? obsMatA : obsMatB;
             const mesh = new THREE.Mesh(geo, mat);
             mesh.position.set(obs.x, h / 2, obs.z);
             mesh.castShadow = true;
             mesh.receiveShadow = true;
             this.scene.add(mesh);
+            this.wallMeshes.push(mesh);
 
-            const capGeo = new THREE.BoxGeometry(obs.w * 0.9, 0.1, obs.d * 0.9);
-            const capMat = new THREE.MeshBasicMaterial({ color: 0xffcc00 });
-            const cap = new THREE.Mesh(capGeo, capMat);
+            // Styling cap on top of walls
+            const capGeo = new THREE.BoxGeometry(obs.w * 0.95, 0.1, obs.d * 0.95);
+            const cap = new THREE.Mesh(capGeo, trimMat);
             cap.position.set(obs.x, h + 0.05, obs.z);
             this.scene.add(cap);
         });
@@ -197,6 +209,7 @@ class App {
         mesh.castShadow = true;
         mesh.receiveShadow = true;
         this.scene.add(mesh);
+        this.wallMeshes.push(mesh);
     }
 
     async _loadTextures() {
@@ -233,6 +246,7 @@ class App {
         this.game = new Game(this.network, this.ui, this.scene);
         this.game.setCamera(this.camera);
         this.game.setTextures(this.textures.killer, this.textures.pierog, this.textures.dead);
+        this.game.setObstacleMeshes(this.wallMeshes);
     }
 
     _bindEvents() {
@@ -386,6 +400,15 @@ class App {
         const dt = Math.min(this.clock.getDelta(), 0.1);
         if (this.game) {
             this.game.update(dt);
+
+            // Update dynamic player light
+            if (this.playerLight && this.game.localPlayer && this.game.localPlayer.alive) {
+                this.playerLight.position.set(
+                    this.game.localPlayer.position.x,
+                    2.5,
+                    this.game.localPlayer.position.z
+                );
+            }
         }
         if (this.renderer && this.scene && this.camera) {
             this.renderer.render(this.scene, this.camera);

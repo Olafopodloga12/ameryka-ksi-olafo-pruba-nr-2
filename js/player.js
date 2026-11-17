@@ -3,20 +3,56 @@
 // ============================================================
 import * as THREE from '../lib/three.module.js';
 
-// Arena boundaries
-export const ARENA_HALF = 9.5; // half-size of the arena (walls at ±10, leave .5 margin)
+// Arena boundaries (50x50 arena, walls at ±25)
+export const ARENA_HALF = 24.2;
 
-// Obstacles (boxes placed on the arena)
+// Obstacles & walls placed across the large arena
 export const OBSTACLES = [
-    { x: -5, z: -5, w: 2, d: 2 },
-    { x:  5, z: -5, w: 2, d: 2 },
-    { x: -5, z:  5, w: 2, d: 2 },
-    { x:  5, z:  5, w: 2, d: 2 },
-    { x:  0, z:  0, w: 3, d: 1 },
-    { x: -8, z:  0, w: 1.5, d: 3 },
-    { x:  8, z:  0, w: 1.5, d: 3 },
-    { x:  0, z: -8, w: 3, d: 1.5 },
-    { x:  0, z:  8, w: 3, d: 1.5 },
+    // Central pillars
+    { x: -3.5, z: -3.5, w: 2.5, d: 2.5 },
+    { x:  3.5, z: -3.5, w: 2.5, d: 2.5 },
+    { x: -3.5, z:  3.5, w: 2.5, d: 2.5 },
+    { x:  3.5, z:  3.5, w: 2.5, d: 2.5 },
+
+    // Central cross barriers
+    { x: 0, z: -11, w: 7, d: 1.5 },
+    { x: 0, z:  11, w: 7, d: 1.5 },
+    { x: -11, z: 0, w: 1.5, d: 7 },
+    { x:  11, z: 0, w: 1.5, d: 7 },
+
+    // North-West Zone
+    { x: -14, z: -15, w: 12, d: 1.5 },
+    { x: -18, z: -8,  w: 1.5, d: 10 },
+    { x: -8,  z: -6,  w: 1.5, d: 6 },
+    { x: -14, z: -4,  w: 2.5, d: 2.5 },
+    { x: -20, z: -18, w: 3,   d: 3 },
+
+    // North-East Zone
+    { x:  14, z: -15, w: 12, d: 1.5 },
+    { x:  18, z: -8,  w: 1.5, d: 10 },
+    { x:  8,  z: -6,  w: 1.5, d: 6 },
+    { x:  14, z: -4,  w: 2.5, d: 2.5 },
+    { x:  20, z: -18, w: 3,   d: 3 },
+
+    // South-West Zone
+    { x: -14, z:  15, w: 12, d: 1.5 },
+    { x: -18, z:  8,  w: 1.5, d: 10 },
+    { x: -8,  z:  6,  w: 1.5, d: 6 },
+    { x: -14, z:  4,  w: 2.5, d: 2.5 },
+    { x: -20, z:  18, w: 3,   d: 3 },
+
+    // South-East Zone
+    { x:  14, z:  15, w: 12, d: 1.5 },
+    { x:  18, z:  8,  w: 1.5, d: 10 },
+    { x:  8,  z:  6,  w: 1.5, d: 6 },
+    { x:  14, z:  4,  w: 2.5, d: 2.5 },
+    { x:  20, z:  18, w: 3,   d: 3 },
+
+    // Outer corner hiding spots
+    { x: -7,  z: -20, w: 4, d: 1.5 },
+    { x:  7,  z: -20, w: 4, d: 1.5 },
+    { x: -7,  z:  20, w: 4, d: 1.5 },
+    { x:  7,  z:  20, w: 4, d: 1.5 }
 ];
 
 export class Player {
@@ -34,7 +70,7 @@ export class Player {
         this.isLocal = false;
 
         // Speed
-        this.baseSpeed = isKiller ? 7.5 : 5.0;
+        this.baseSpeed = isKiller ? 8.5 : 6.0;
         this.sprintMultiplier = 1.6;
         this.stamina = 1.0;
         this.maxStamina = 1.0;
@@ -242,6 +278,13 @@ export class Player {
             if (this.nameSprite) this.nameSprite.material.opacity = 0.4;
             if (this.aura) this.aura.visible = false;
         }, 1000);
+    }
+
+    // Visibility (Line-of-Sight)
+    setVisible(visible) {
+        if (this.group) {
+            this.group.visible = visible;
+        }
     }
 
     // Remove from scene
