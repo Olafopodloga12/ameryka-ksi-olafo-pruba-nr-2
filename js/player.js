@@ -97,7 +97,7 @@ export class Player {
         }
 
         // Direction facing (for shooting/aiming in top-down mode)
-        this.facingDir = { x: 0, z: 1 };
+        this.facingDir = { x: 0, z: -1 };
     }
 
     _createGunMesh() {

@@ -29,26 +29,31 @@
     <div id="global-error-box" style="display:none; position:fixed; top:0; left:0; right:0; background:#ff2244; color:#fff; padding:12px; font-weight:bold; z-index:9999; text-align:center; font-family:sans-serif;"></div>
     <!-- ============ MAIN MENU SCREEN ============ -->
     <div id="screen-menu" class="screen active">
-        <div class="menu-container">
-            <h1 class="game-title">
-                <span class="title-killer">OLAFO KILLER</span>
-                <span class="title-vs">vs</span>
-                <span class="title-pierogi">PIEROGI</span>
-            </h1>
-            <div class="menu-form">
-                <label for="nickname-input">Twój nick:</label>
-                <input type="text" id="nickname-input" placeholder="Wpisz nick..." maxlength="16" value="">
+        <div class="menu-fullscreen">
+            <div class="menu-olafo-side">
+                <img src="assets/olafo_killer.png" alt="Olafo Killer" class="menu-olafo-idle">
             </div>
-            <div class="menu-buttons">
-                <button id="btn-create" class="btn btn-primary">Stwórz Lobby</button>
-                <button id="btn-join-show" class="btn btn-secondary">Dołącz do Lobby</button>
+            <div class="menu-content-side">
+                <h1 class="game-title">
+                    <span class="title-killer">OLAFO KILLER</span>
+                    <span class="title-vs">vs</span>
+                    <span class="title-pierogi">PIEROGI</span>
+                </h1>
+                <div class="menu-form">
+                    <label for="nickname-input">TWÓJ NICK</label>
+                    <input type="text" id="nickname-input" placeholder="Wpisz nick..." maxlength="16" value="">
+                </div>
+                <div class="menu-buttons">
+                    <button id="btn-create" class="btn btn-primary">STWÓRZ LOBBY</button>
+                    <button id="btn-join-show" class="btn btn-secondary">DOŁĄCZ DO LOBBY</button>
+                </div>
+                <div id="join-section" class="join-section hidden">
+                    <input type="text" id="room-code-input" placeholder="Wpisz kod pokoju..." maxlength="6">
+                    <button id="btn-join" class="btn btn-primary">DOŁĄCZ</button>
+                </div>
+                <p id="menu-error" class="error-text hidden"></p>
+                <p id="menu-status" class="status-text hidden"></p>
             </div>
-            <div id="join-section" class="join-section hidden">
-                <input type="text" id="room-code-input" placeholder="Wpisz kod pokoju..." maxlength="6">
-                <button id="btn-join" class="btn btn-primary">Dołącz</button>
-            </div>
-            <p id="menu-error" class="error-text hidden"></p>
-            <p id="menu-status" class="status-text hidden"></p>
         </div>
     </div>
 

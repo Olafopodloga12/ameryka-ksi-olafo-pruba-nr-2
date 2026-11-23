@@ -194,13 +194,19 @@ export class Game {
                 }
                 break;
 
-            case 'gun-shoot':
+            case 'gun-shoot': {
                 // Olafo fired a gun bullet
                 this._createBullet(data.id, data.startX, data.startY, data.startZ, data.dirX, data.dirY, data.dirZ, data.speed);
+                // Show gun animation on the killer player for other clients
+                const shooterPlayer = this.players.get(this.killerId);
+                if (shooterPlayer && shooterPlayer.triggerGunShot) {
+                    shooterPlayer.triggerGunShot(data.dirX, data.dirZ);
+                }
                 if (this.network.isHost) {
                     this.network.broadcast('gun-shoot', data);
                 }
                 break;
+            }
 
             case 'round-end':
                 // Round ended
@@ -381,8 +387,7 @@ export class Game {
     _updatePlaying(dt) {
         // Update local player
         if (this.localPlayer && this.localPlayer.alive) {
-            // Pass tppYaw for Olafo so WASD moves in Fortnite camera direction
-            this.localPlayer.updateLocal(dt, this.keys, this.myRole === 'killer' ? this.tppYaw : null);
+            this.localPlayer.updateLocal(dt, this.keys);
 
             // Update stamina UI
             if (this.myRole === 'pierog') {
@@ -603,19 +608,19 @@ export class Game {
         if (!this.localPlayer || !this.localPlayer.alive) return;
         if (this.gunCooldown > 0) return;
 
-        // Calculate direction where camera is looking
-        const cosP = Math.cos(this.tppPitch);
-        const sinP = Math.sin(this.tppPitch);
-        const sinY = Math.sin(this.tppYaw);
-        const cosY = Math.cos(this.tppYaw);
+        // Shoot in the direction Olafo is facing (last movement direction)
+        let dirX = this.localPlayer.facingDir ? this.localPlayer.facingDir.x : 0;
+        let dirZ = this.localPlayer.facingDir ? this.localPlayer.facingDir.z : -1;
+        const dirY = 0; // horizontal shot in top-down view
 
-        const dirX = sinY * cosP;
-        const dirY = sinP;
-        const dirZ = cosY * cosP;
+        // Normalize direction
+        const len = Math.hypot(dirX, dirZ);
+        if (len > 0) { dirX /= len; dirZ /= len; }
+        else { dirX = 0; dirZ = -1; }
 
         // Start position in front of Olafo
         const startX = this.localPlayer.position.x + dirX * 0.9;
-        const startY = this.localPlayer.position.y + 1.2 + dirY * 0.9;
+        const startY = 1.2;
         const startZ = this.localPlayer.position.z + dirZ * 0.9;
 
         const speed = 36.0;
@@ -623,6 +628,11 @@ export class Game {
 
         this._createBullet(id, startX, startY, startZ, dirX, dirY, dirZ, speed);
         this.gunCooldown = this.GUN_COOLDOWN_TIME;
+
+        // Trigger gun visual animation on Olafo
+        if (this.localPlayer.triggerGunShot) {
+            this.localPlayer.triggerGunShot(dirX, dirZ);
+        }
 
         // Broadcast to other players
         const payload = { id, startX, startY, startZ, dirX, dirY, dirZ, speed };
@@ -942,56 +952,28 @@ export class Game {
                 this.spectatorPos.z - Math.cos(this.spectatorYaw) * 5
             );
         } else if (this.localPlayer) {
-            if (this.myRole === 'killer') {
-                // Centered TPP Camera for Olafo Killer (Non-inverted look)
-                const cosP = Math.cos(this.tppPitch);
-                const sinP = Math.sin(this.tppPitch);
-                const sinY = Math.sin(this.tppYaw);
-                const cosY = Math.cos(this.tppYaw);
+            // Classic Top-Down / Isometric camera for all players
+            const targetX = this.localPlayer.position.x + this.cameraOffset.x;
+            const targetY = this.cameraOffset.y;
+            const targetZ = this.localPlayer.position.z + this.cameraOffset.z;
 
-                // Camera directly centered behind Olafo
-                const camX = this.localPlayer.position.x - sinY * (this.tppDistance * cosP);
-                const camY = this.localPlayer.position.y + this.tppHeight - sinP * (this.tppDistance * 0.4);
-                const camZ = this.localPlayer.position.z - cosY * (this.tppDistance * cosP);
+            const smoothing = 6;
+            this.camera.position.x += (targetX - this.camera.position.x) * Math.min(smoothing * dt, 1);
+            this.camera.position.y += (targetY - this.camera.position.y) * Math.min(smoothing * dt, 1);
+            this.camera.position.z += (targetZ - this.camera.position.z) * Math.min(smoothing * dt, 1);
 
-                this.camera.position.set(camX, camY, camZ);
-
-                // Aim target ahead (pitch up looks up, pitch down looks down)
-                const lookDist = 25;
-                const targetX = this.localPlayer.position.x + sinY * (lookDist * cosP);
-                const targetY = this.localPlayer.position.y + this.tppHeight + sinP * lookDist;
-                const targetZ = this.localPlayer.position.z + cosY * (lookDist * cosP);
-
-                this.camera.lookAt(targetX, targetY, targetZ);
-            } else {
-                // Pieróg: Classic Top-Down / Isometric camera unchanged
-                const targetX = this.localPlayer.position.x + this.cameraOffset.x;
-                const targetY = this.cameraOffset.y;
-                const targetZ = this.localPlayer.position.z + this.cameraOffset.z;
-
-                const smoothing = 6;
-                this.camera.position.x += (targetX - this.camera.position.x) * Math.min(smoothing * dt, 1);
-                this.camera.position.y += (targetY - this.camera.position.y) * Math.min(smoothing * dt, 1);
-                this.camera.position.z += (targetZ - this.camera.position.z) * Math.min(smoothing * dt, 1);
-
-                this.camera.lookAt(
-                    this.localPlayer.position.x,
-                    0,
-                    this.localPlayer.position.z
-                );
-            }
+            this.camera.lookAt(
+                this.localPlayer.position.x,
+                0,
+                this.localPlayer.position.z
+            );
         }
     }
 
     // === INPUT ===
 
     onMouseMove(movementX, movementY) {
-        if (this.state === GameState.PLAYING && this.myRole === 'killer' && this.localPlayer && this.localPlayer.alive) {
-            // Natural non-inverted mouse look: moving mouse right rotates view right, moving mouse up looks up
-            this.tppYaw += movementX * 0.003;
-            this.tppPitch -= movementY * 0.003;
-            this.tppPitch = Math.max(-0.55, Math.min(0.65, this.tppPitch));
-        }
+        // Top-down view: no mouse look needed
     }
 
     onKeyDown(code) {
