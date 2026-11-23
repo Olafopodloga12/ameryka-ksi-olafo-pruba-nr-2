@@ -93,6 +93,141 @@ export class Player {
         // Killer glow
         if (isKiller) {
             this._createKillerAura();
+            this._createGunMesh();
+        }
+
+        // Direction facing (for shooting/aiming in top-down mode)
+        this.facingDir = { x: 0, z: 1 };
+    }
+
+    _createGunMesh() {
+        // Gun pivot group centered at body height
+        this.gunPivot = new THREE.Group();
+        this.gunPivot.position.set(0, 1.0, 0);
+
+        // Internal sub-group for gun rotation/aim and recoil kick
+        this.gunMesh = new THREE.Group();
+        this.gunPivot.add(this.gunMesh);
+
+        // Gun body (receiver / frame)
+        const bodyGeo = new THREE.BoxGeometry(0.12, 0.16, 0.38);
+        const bodyMat = new THREE.MeshStandardMaterial({
+            color: 0x242830,
+            roughness: 0.3,
+            metalness: 0.85
+        });
+        const body = new THREE.Mesh(bodyGeo, bodyMat);
+        body.position.set(0, 0, 0);
+        this.gunMesh.add(body);
+
+        // Gun barrel
+        const barrelGeo = new THREE.CylinderGeometry(0.045, 0.045, 0.32, 12);
+        const barrelMat = new THREE.MeshStandardMaterial({
+            color: 0x111317,
+            roughness: 0.15,
+            metalness: 0.95
+        });
+        const barrel = new THREE.Mesh(barrelGeo, barrelMat);
+        barrel.rotation.x = Math.PI / 2;
+        barrel.position.set(0, 0.04, 0.3);
+        this.gunMesh.add(barrel);
+
+        // Gun grip (handle)
+        const gripGeo = new THREE.BoxGeometry(0.1, 0.22, 0.12);
+        const gripMat = new THREE.MeshStandardMaterial({
+            color: 0x3d2010,
+            roughness: 0.75,
+            metalness: 0.1
+        });
+        const grip = new THREE.Mesh(gripGeo, gripMat);
+        grip.rotation.x = -0.35;
+        grip.position.set(0, -0.13, -0.06);
+        this.gunMesh.add(grip);
+
+        // Muzzle flash mesh
+        const flashGeo = new THREE.SphereGeometry(0.18, 8, 8);
+        const flashMat = new THREE.MeshBasicMaterial({
+            color: 0xffaa00,
+            transparent: true,
+            opacity: 0.95
+        });
+        this.muzzleFlash = new THREE.Mesh(flashGeo, flashMat);
+        this.muzzleFlash.position.set(0, 0.04, 0.52);
+        this.muzzleFlash.visible = false;
+        this.gunMesh.add(this.muzzleFlash);
+
+        // Muzzle flash point light
+        this.muzzleLight = new THREE.PointLight(0xff6600, 0, 4);
+        this.muzzleLight.position.set(0, 0.04, 0.55);
+        this.gunMesh.add(this.muzzleLight);
+
+        // Offset the gun to the right side of Olafo
+        this.gunMesh.position.set(0.62, 0, 0.3);
+
+        // Initially hidden until shot is fired
+        this.gunPivot.visible = false;
+        this.group.add(this.gunPivot);
+
+        // Animation state
+        this.gunShootTimer = 0;
+        this.gunShootDuration = 0.55;
+    }
+
+    // Trigger visual gunshot: model appears, tilts up & down (recoil kick), then hides
+    triggerGunShot(dirX, dirZ) {
+        if (!this.gunPivot) return;
+        this.gunPivot.visible = true;
+        this.gunShootTimer = this.gunShootDuration;
+
+        // Yaw to face bullet direction
+        const yaw = Math.atan2(dirX, dirZ);
+        this.gunPivot.rotation.y = yaw;
+
+        // Initial flash
+        if (this.muzzleFlash) this.muzzleFlash.visible = true;
+        if (this.muzzleLight) this.muzzleLight.intensity = 3.5;
+    }
+
+    _updateGunAnimation(dt) {
+        if (!this.gunPivot || this.gunShootTimer <= 0) return;
+
+        this.gunShootTimer -= dt;
+        if (this.gunShootTimer <= 0) {
+            this.gunShootTimer = 0;
+            this.gunPivot.visible = false;
+            if (this.muzzleFlash) this.muzzleFlash.visible = false;
+            if (this.muzzleLight) this.muzzleLight.intensity = 0;
+            if (this.gunMesh) {
+                this.gunMesh.rotation.x = 0;
+                this.gunMesh.position.set(0.62, 0, 0.3);
+            }
+            return;
+        }
+
+        const elapsed = this.gunShootDuration - this.gunShootTimer;
+
+        // Flash lasts for first 0.08s
+        if (elapsed > 0.08) {
+            if (this.muzzleFlash) this.muzzleFlash.visible = false;
+            if (this.muzzleLight) this.muzzleLight.intensity = 0;
+        }
+
+        // Recoil kick up and down:
+        // 0.0s - 0.12s: kicks UP (pitch angle tilts up by ~36 deg / -0.63 rad) and back
+        // 0.12s - 0.36s: rotates back DOWN to level
+        // 0.36s - 0.55s: lowers slightly before disappearing
+        if (elapsed <= 0.12) {
+            const p = elapsed / 0.12;
+            this.gunMesh.rotation.x = -0.65 * Math.sin(p * (Math.PI / 2));
+            this.gunMesh.position.z = 0.3 - 0.14 * p;
+        } else if (elapsed <= 0.36) {
+            const p = (elapsed - 0.12) / 0.24;
+            this.gunMesh.rotation.x = -0.65 * Math.cos(p * (Math.PI / 2));
+            this.gunMesh.position.z = (0.3 - 0.14) + 0.14 * p;
+        } else {
+            const p = (elapsed - 0.36) / (this.gunShootDuration - 0.36);
+            this.gunMesh.rotation.x = 0.25 * p;
+            this.gunMesh.position.y = -0.15 * p;
         }
     }
 
@@ -166,38 +301,30 @@ export class Player {
         this.group.position.set(x, 0, z);
     }
 
-    // Update movement for local player (camYaw used for Olafo Fortnite TPP)
-    updateLocal(dt, keys, camYaw = null) {
+    // Update movement for local player (classic top-down view)
+    updateLocal(dt, keys) {
         if (!this.alive) return;
 
-        // Raw input axes
+        // Raw input axes: W/S (Z axis), A/D (X axis)
         let inputX = 0, inputZ = 0;
         if (keys['KeyW'] || keys['ArrowUp']) inputZ -= 1;
         if (keys['KeyS'] || keys['ArrowDown']) inputZ += 1;
         if (keys['KeyA'] || keys['ArrowLeft']) inputX -= 1;
         if (keys['KeyD'] || keys['ArrowRight']) inputX += 1;
 
-        let dx = 0, dz = 0;
+        const dx = inputX;
+        const dz = inputZ;
 
-        if (this.isKiller && camYaw !== null) {
-            // TPP: movement relative to camera look angle
-            const fwdX = Math.sin(camYaw);
-            const fwdZ = Math.cos(camYaw);
-            // Right vector (perpendicular to forward: A moves left, D moves right)
-            const rightX = -fwdZ;
-            const rightZ = fwdX;
-
-            dx = fwdX * (-inputZ) + rightX * inputX;
-            dz = fwdZ * (-inputZ) + rightZ * inputX;
-        } else {
-            // Pieróg: classic top-down movement unchanged
-            dx = inputX;
-            dz = inputZ;
+        // Store facing direction for shooting when moving
+        if (dx !== 0 || dz !== 0) {
+            this.facingDir = { x: dx, z: dz };
         }
 
         // Normalize diagonal movement
         const len = Math.sqrt(dx * dx + dz * dz);
-        if (len > 0) { dx /= len; dz /= len; }
+        let moveX = dx;
+        let moveZ = dz;
+        if (len > 0) { moveX /= len; moveZ /= len; }
 
         // Sprint
         this.isSprinting = keys['ShiftLeft'] || keys['ShiftRight'];
@@ -223,8 +350,8 @@ export class Player {
         }
 
         // Apply velocity with smoothing
-        const targetVX = dx * speed;
-        const targetVZ = dz * speed;
+        const targetVX = moveX * speed;
+        const targetVZ = moveZ * speed;
         const smoothing = 12;
         this.velocity.x += (targetVX - this.velocity.x) * Math.min(smoothing * dt, 1);
         this.velocity.z += (targetVZ - this.velocity.z) * Math.min(smoothing * dt, 1);
@@ -242,6 +369,9 @@ export class Player {
 
         // Update group position
         this.group.position.set(this.position.x, 0, this.position.z);
+
+        // Update visual gun animation (recoil kick up & down)
+        this._updateGunAnimation(dt);
     }
 
     // Update for remote players (interpolation)
@@ -250,6 +380,9 @@ export class Player {
         this.position.x += (this.targetPosition.x - this.position.x) * Math.min(lerpSpeed * dt, 1);
         this.position.z += (this.targetPosition.z - this.position.z) * Math.min(lerpSpeed * dt, 1);
         this.group.position.set(this.position.x, 0, this.position.z);
+
+        // Update visual gun animation on remote killer too!
+        this._updateGunAnimation(dt);
     }
 
     // Set target for remote interpolation
