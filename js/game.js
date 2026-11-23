@@ -18,16 +18,32 @@ const ROUND_TIME = 60; // seconds
 const COUNTDOWN_TIME = 3;
 const RESULT_TIME = 5;
 
-// Spawn positions across the large 50x50 arena
-const SPAWN_POSITIONS = [
+// 24 varied spawn candidates across all sectors of the arena
+const SPAWN_CANDIDATES = [
     { x: -18, z: -18 },
+    { x: -10, z: -20 },
+    { x:   0, z: -19 },
+    { x:  10, z: -20 },
     { x:  18, z: -18 },
+    { x: -20, z: -10 },
+    { x:  -5, z: -14 },
+    { x:   5, z: -14 },
+    { x:  20, z: -10 },
+    { x: -19, z:   0 },
+    { x:  -7, z:   0 },
+    { x:   7, z:   0 },
+    { x:  19, z:   0 },
+    { x: -20, z:  10 },
+    { x:  -5, z:  14 },
+    { x:   5, z:  14 },
+    { x:  20, z:  10 },
     { x: -18, z:  18 },
-    { x:  18, z:  18 },
-    { x:   0, z: -18 },
-    { x:   0, z:  18 },
-    { x: -18, z:   0 },
-    { x:  18, z:   0 },
+    { x: -10, z:  20 },
+    { x:   0, z:  19 },
+    { x:  10, z:  20 },
+    { x: -14, z: -10 },
+    { x:  14, z: -10 },
+    { x: -14, z:  10 }
 ];
 
 export class Game {
@@ -268,14 +284,23 @@ export class Game {
         const killerIndex = Math.floor(Math.random() * allPlayers.length);
         const killerInfo = allPlayers[killerIndex];
 
-        // Assign spawn positions
-        const assignments = allPlayers.map((p, i) => ({
-            id: p.id,
-            name: p.name,
-            isKiller: p.id === killerInfo.id,
-            spawnX: SPAWN_POSITIONS[i % SPAWN_POSITIONS.length].x,
-            spawnZ: SPAWN_POSITIONS[i % SPAWN_POSITIONS.length].z
-        }));
+        // Generate fresh, randomized spawn positions for every player this round
+        const shuffledSpawns = [...SPAWN_CANDIDATES].sort(() => Math.random() - 0.5);
+
+        // Assign randomized spawn positions
+        const assignments = allPlayers.map((p, i) => {
+            const spawn = shuffledSpawns[i % shuffledSpawns.length];
+            // Add a slight random jitter (±0.6) so spawns never repeat identically
+            const jitterX = (Math.random() - 0.5) * 1.2;
+            const jitterZ = (Math.random() - 0.5) * 1.2;
+            return {
+                id: p.id,
+                name: p.name,
+                isKiller: p.id === killerInfo.id,
+                spawnX: parseFloat((spawn.x + jitterX).toFixed(2)),
+                spawnZ: parseFloat((spawn.z + jitterZ).toFixed(2))
+            };
+        });
 
         const startData = {
             assignments,
@@ -387,7 +412,7 @@ export class Game {
     _updatePlaying(dt) {
         // Update local player
         if (this.localPlayer && this.localPlayer.alive) {
-            this.localPlayer.updateLocal(dt, this.keys);
+            this.localPlayer.updateLocal(dt, this.keys, this.myRole === 'killer' ? this.tppYaw : null);
 
             // Update stamina UI
             if (this.myRole === 'pierog') {
@@ -608,10 +633,10 @@ export class Game {
         if (!this.localPlayer || !this.localPlayer.alive) return;
         if (this.gunCooldown > 0) return;
 
-        // Shoot in the direction Olafo is facing (last movement direction)
-        let dirX = this.localPlayer.facingDir ? this.localPlayer.facingDir.x : 0;
-        let dirZ = this.localPlayer.facingDir ? this.localPlayer.facingDir.z : -1;
-        const dirY = 0; // horizontal shot in top-down view
+        // Calculate direction where Olafo is facing / camera is aiming
+        let dirX = -Math.sin(this.tppYaw);
+        let dirZ = -Math.cos(this.tppYaw);
+        const dirY = -Math.sin(this.tppPitch);
 
         // Normalize direction
         const len = Math.hypot(dirX, dirZ);
@@ -952,28 +977,121 @@ export class Game {
                 this.spectatorPos.z - Math.cos(this.spectatorYaw) * 5
             );
         } else if (this.localPlayer) {
-            // Classic Top-Down / Isometric camera for all players
-            const targetX = this.localPlayer.position.x + this.cameraOffset.x;
-            const targetY = this.cameraOffset.y;
-            const targetZ = this.localPlayer.position.z + this.cameraOffset.z;
+            if (this.myRole === 'killer') {
+                // Third-person camera behind Olafo Killer with wall collision prevention
+                const cosP = Math.cos(this.tppPitch);
+                const sinP = Math.sin(this.tppPitch);
+                const sinY = Math.sin(this.tppYaw);
+                const cosY = Math.cos(this.tppYaw);
 
-            const smoothing = 6;
-            this.camera.position.x += (targetX - this.camera.position.x) * Math.min(smoothing * dt, 1);
-            this.camera.position.y += (targetY - this.camera.position.y) * Math.min(smoothing * dt, 1);
-            this.camera.position.z += (targetZ - this.camera.position.z) * Math.min(smoothing * dt, 1);
+                let maxCamDist = 3.8;
+                const camHeight = 2.2;
+                
+                // Camera pivot point at player eye level
+                const pivotX = this.localPlayer.position.x;
+                const pivotY = this.localPlayer.position.y + 1.8;
+                const pivotZ = this.localPlayer.position.z;
 
-            this.camera.lookAt(
-                this.localPlayer.position.x,
-                0,
-                this.localPlayer.position.z
-            );
+                // Raycast direction from player backwards towards camera position
+                const backDirX = sinY * cosP;
+                const backDirY = sinP;
+                const backDirZ = cosY * cosP;
+
+                // Check distance to obstacles and boundary walls to prevent camera clipping
+                let safeDist = maxCamDist;
+                const camMargin = 0.45; // clearance from walls
+
+                // 1. Check arena boundary walls (±ARENA_HALF)
+                const wallBound = ARENA_HALF - camMargin;
+                if (backDirX !== 0) {
+                    const tX = (Math.sign(backDirX) * wallBound - pivotX) / backDirX;
+                    if (tX > 0 && tX < safeDist) safeDist = Math.max(0.6, tX);
+                }
+                if (backDirZ !== 0) {
+                    const tZ = (Math.sign(backDirZ) * wallBound - pivotZ) / backDirZ;
+                    if (tZ > 0 && tZ < safeDist) safeDist = Math.max(0.6, tZ);
+                }
+
+                // 2. Check obstacles (AABB) between pivot and camera
+                for (const obs of OBSTACLES) {
+                    const minX = obs.x - obs.w / 2 - camMargin;
+                    const maxX = obs.x + obs.w / 2 + camMargin;
+                    const minZ = obs.z - obs.d / 2 - camMargin;
+                    const maxZ = obs.z + obs.d / 2 + camMargin;
+                    const obsHeight = 3.4;
+
+                    // Ray vs AABB intersection in 2D (XZ)
+                    let tmin = 0;
+                    let tmax = safeDist;
+
+                    if (Math.abs(backDirX) > 0.0001) {
+                        const tx1 = (minX - pivotX) / backDirX;
+                        const tx2 = (maxX - pivotX) / backDirX;
+                        tmin = Math.max(tmin, Math.min(tx1, tx2));
+                        tmax = Math.min(tmax, Math.max(tx1, tx2));
+                    } else if (pivotX < minX || pivotX > maxX) {
+                        continue;
+                    }
+
+                    if (Math.abs(backDirZ) > 0.0001) {
+                        const tz1 = (minZ - pivotZ) / backDirZ;
+                        const tz2 = (maxZ - pivotZ) / backDirZ;
+                        tmin = Math.max(tmin, Math.min(tz1, tz2));
+                        tmax = Math.min(tmax, Math.max(tz1, tz2));
+                    } else if (pivotZ < minZ || pivotZ > maxZ) {
+                        continue;
+                    }
+
+                    if (tmax >= tmin && tmin > 0 && tmin < safeDist) {
+                        const hitY = pivotY + backDirY * tmin;
+                        if (hitY < obsHeight) {
+                            safeDist = Math.max(0.6, tmin);
+                        }
+                    }
+                }
+
+                const camX = pivotX + backDirX * safeDist;
+                const camY = this.localPlayer.position.y + camHeight + sinP * safeDist;
+                const camZ = pivotZ + backDirZ * safeDist;
+
+                this.camera.position.set(camX, camY, camZ);
+
+                // Look target is in front of Olafo
+                const lookDist = 20;
+                const targetX = this.localPlayer.position.x - sinY * (lookDist * cosP);
+                const targetY = this.localPlayer.position.y + 1.8 - sinP * lookDist;
+                const targetZ = this.localPlayer.position.z - cosY * (lookDist * cosP);
+
+                this.camera.lookAt(targetX, targetY, targetZ);
+            } else {
+                // Pieróg: Classic Top-Down / Isometric camera unchanged
+                const targetX = this.localPlayer.position.x + this.cameraOffset.x;
+                const targetY = this.cameraOffset.y;
+                const targetZ = this.localPlayer.position.z + this.cameraOffset.z;
+
+                const smoothing = 6;
+                this.camera.position.x += (targetX - this.camera.position.x) * Math.min(smoothing * dt, 1);
+                this.camera.position.y += (targetY - this.camera.position.y) * Math.min(smoothing * dt, 1);
+                this.camera.position.z += (targetZ - this.camera.position.z) * Math.min(smoothing * dt, 1);
+
+                this.camera.lookAt(
+                    this.localPlayer.position.x,
+                    0,
+                    this.localPlayer.position.z
+                );
+            }
         }
     }
 
     // === INPUT ===
 
     onMouseMove(movementX, movementY) {
-        // Top-down view: no mouse look needed
+        if (this.state === GameState.PLAYING && this.myRole === 'killer' && this.localPlayer && this.localPlayer.alive) {
+            // Mouse look for third-person camera
+            this.tppYaw -= movementX * 0.003;
+            this.tppPitch += movementY * 0.003;
+            this.tppPitch = Math.max(-0.6, Math.min(0.6, this.tppPitch));
+        }
     }
 
     onKeyDown(code) {

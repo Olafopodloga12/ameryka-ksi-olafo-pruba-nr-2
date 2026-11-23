@@ -141,7 +141,7 @@ export class UI {
     showHUD(isKiller) {
         this.hud.classList.remove('hidden');
         this.hudRole.className = 'hud-role ' + (isKiller ? 'killer' : 'pierog');
-        this.hudRole.textContent = isKiller ? '🔪 OLAFO KILLER' : '🥟 PIERÓG';
+        this.hudRole.textContent = isKiller ? 'OLAFO KILLER' : 'PIEROG';
 
         if (isKiller) {
             this.hudStaminaContainer.classList.add('hidden');

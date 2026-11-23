@@ -55,6 +55,22 @@ export const OBSTACLES = [
     { x:  7,  z:  20, w: 4, d: 1.5 }
 ];
 
+// One-way laser forcefields (Olafo Killer can walk through, Pierogi cannot loop him!)
+export const LASER_WALLS = [
+    // NW loop connector
+    { x: -14, z: -10, w: 6.5, d: 0.35, rot: 0 },
+    // NE loop connector
+    { x:  14, z: -10, w: 6.5, d: 0.35, rot: 0 },
+    // SW loop connector
+    { x: -14, z:  10, w: 6.5, d: 0.35, rot: 0 },
+    // SE loop connector
+    { x:  14, z:  10, w: 6.5, d: 0.35, rot: 0 },
+    // Center-North choke
+    { x: 0, z: -5.5, w: 4.5, d: 0.35, rot: 0 },
+    // Center-South choke
+    { x: 0, z:  5.5, w: 4.5, d: 0.35, rot: 0 }
+];
+
 export class Player {
     constructor(id, name, isKiller, scene, textureKiller, texturePierog, textureDead) {
         this.id = id;
@@ -254,38 +270,67 @@ export class Player {
 
     _createNameLabel() {
         const canvas = document.createElement('canvas');
-        canvas.width = 256;
-        canvas.height = 64;
+        canvas.width = 512;
+        canvas.height = 128;
         const ctx = canvas.getContext('2d');
 
-        ctx.font = 'bold 28px Poppins, sans-serif';
+        // Cyber / Laser styled font & glowing design
+        ctx.font = 'bold 44px RubikIso, Poppins, sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
 
-        // Background
-        ctx.fillStyle = 'rgba(0,0,0,0.5)';
+        // Laser badge box
         const textWidth = ctx.measureText(this.name).width;
-        ctx.roundRect(128 - textWidth/2 - 10, 10, textWidth + 20, 44, 8);
-        ctx.fill();
+        const boxWidth = Math.max(textWidth + 48, 200);
+        const boxHeight = 72;
+        const boxX = 256 - boxWidth / 2;
+        const boxY = 28;
 
-        // Text
-        ctx.fillStyle = this.isKiller ? '#ff4444' : '#ffcc00';
-        ctx.fillText(this.name, 128, 32);
+        // Dark background with laser border
+        ctx.fillStyle = 'rgba(5, 10, 22, 0.82)';
+        ctx.fillRect(boxX, boxY, boxWidth, boxHeight);
+
+        // Glowing border
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = this.isKiller ? '#ff0055' : '#00f0ff';
+        ctx.strokeRect(boxX, boxY, boxWidth, boxHeight);
+
+        // Corner accents
+        ctx.fillStyle = this.isKiller ? '#ff0055' : '#00f0ff';
+        const cSize = 8;
+        ctx.fillRect(boxX - 2, boxY - 2, cSize, cSize);
+        ctx.fillRect(boxX + boxWidth - cSize + 2, boxY - 2, cSize, cSize);
+        ctx.fillRect(boxX - 2, boxY + boxHeight - cSize + 2, cSize, cSize);
+        ctx.fillRect(boxX + boxWidth - cSize + 2, boxY + boxHeight - cSize + 2, cSize, cSize);
+
+        // Text with neon laser glow
+        ctx.shadowColor = this.isKiller ? '#ff0055' : '#00f0ff';
+        ctx.shadowBlur = 12;
+        ctx.fillStyle = this.isKiller ? '#ff3377' : '#ffffff';
+        ctx.fillText(this.name, 256, 64);
 
         const texture = new THREE.CanvasTexture(canvas);
-        const material = new THREE.SpriteMaterial({ map: texture, transparent: true });
+        texture.colorSpace = THREE.SRGBColorSpace;
+        const material = new THREE.SpriteMaterial({ 
+            map: texture, 
+            transparent: true,
+            depthTest: false
+        });
         this.nameSprite = new THREE.Sprite(material);
-        this.nameSprite.scale.set(3, 0.75, 1);
-        this.nameSprite.position.y = 2.6;
+        this.nameSprite.scale.set(3.4, 0.85, 1);
+        this.nameSprite.position.y = 2.65;
+        this.nameSprite.renderOrder = 999;
         this.group.add(this.nameSprite);
     }
 
     _createKillerAura() {
-        const geometry = new THREE.RingGeometry(0.8, 1.2, 32);
+        // Laser-themed aura or disabled to match laser environment
+        // Delikatny, cienki neonowy pierścień zrobiony jak wiązka lasera na ziemi
+        const geometry = new THREE.RingGeometry(0.98, 1.05, 32);
         const material = new THREE.MeshBasicMaterial({
-            color: 0xff0000,
+            color: 0xff0055,
             transparent: true,
-            opacity: 0.3,
+            opacity: 0.6,
             side: THREE.DoubleSide
         });
         this.aura = new THREE.Mesh(geometry, material);
@@ -301,19 +346,39 @@ export class Player {
         this.group.position.set(x, 0, z);
     }
 
-    // Update movement for local player (classic top-down view)
-    updateLocal(dt, keys) {
+    // Update movement for local player
+    updateLocal(dt, keys, camYaw = null) {
         if (!this.alive) return;
 
-        // Raw input axes: W/S (Z axis), A/D (X axis)
+        // Raw input axes: W/S, A/D
         let inputX = 0, inputZ = 0;
-        if (keys['KeyW'] || keys['ArrowUp']) inputZ -= 1;
-        if (keys['KeyS'] || keys['ArrowDown']) inputZ += 1;
-        if (keys['KeyA'] || keys['ArrowLeft']) inputX -= 1;
-        if (keys['KeyD'] || keys['ArrowRight']) inputX += 1;
+        if (keys['KeyW'] || keys['ArrowUp']) inputZ -= 1; // forward (-Z)
+        if (keys['KeyS'] || keys['ArrowDown']) inputZ += 1; // backward (+Z)
+        if (keys['KeyA'] || keys['ArrowLeft']) inputX -= 1; // left (-X)
+        if (keys['KeyD'] || keys['ArrowRight']) inputX += 1; // right (+X)
 
-        const dx = inputX;
-        const dz = inputZ;
+        let dx = 0, dz = 0;
+
+        if (this.isKiller && camYaw !== null) {
+            // TPP: W moves in camera look direction, S moves backward, A moves left, D moves right
+            // Look direction in XZ plane:
+            // fwdX = -sin(yaw), fwdZ = -cos(yaw)
+            const fwdX = -Math.sin(camYaw);
+            const fwdZ = -Math.cos(camYaw);
+            // Right vector (perpendicular 90 deg clockwise to forward):
+            // rightX = cos(yaw), rightZ = -sin(yaw)
+            const rightX = Math.cos(camYaw);
+            const rightZ = -Math.sin(camYaw);
+
+            // inputZ: -1 is W (forward), +1 is S (backward)
+            // inputX: -1 is A (left), +1 is D (right)
+            dx = fwdX * (-inputZ) + rightX * inputX;
+            dz = fwdZ * (-inputZ) + rightZ * inputX;
+        } else {
+            // Top-down view (Pieróg)
+            dx = inputX;
+            dz = inputZ;
+        }
 
         // Store facing direction for shooting when moving
         if (dx !== 0 || dz !== 0) {

@@ -74,8 +74,8 @@ class App {
 
         // Scene
         this.scene = new THREE.Scene();
-        this.scene.background = new THREE.Color(0x121324);
-        this.scene.fog = new THREE.FogExp2(0x121324, 0.015);
+        this.scene.background = new THREE.Color(0x0a0c16); // Laser theme dark cyber-blue
+        this.scene.fog = new THREE.FogExp2(0x0a0c16, 0.018);
 
         // Camera
         const aspect = window.innerWidth / window.innerHeight;
@@ -91,12 +91,12 @@ class App {
         this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         container.appendChild(this.renderer.domElement);
 
-        // Ambient Light (atmospheric, dark so shadows look prominent!)
-        const ambient = new THREE.AmbientLight(0xffffff, 0.45);
+        // Ambient Light
+        const ambient = new THREE.AmbientLight(0x223355, 0.6);
         this.scene.add(ambient);
 
-        // Sun / Main Shadow Casting Directional Light
-        const dirLight = new THREE.DirectionalLight(0xffedd4, 1.1);
+        // Main Directional Light (Neon tinted)
+        const dirLight = new THREE.DirectionalLight(0xff0055, 0.85);
         dirLight.position.set(30, 45, 25);
         dirLight.castShadow = true;
         dirLight.shadow.mapSize.width = 2048;
@@ -111,13 +111,13 @@ class App {
         dirLight.shadow.bias = -0.0005;
         this.scene.add(dirLight);
 
-        // Secondary rim/fill light (cool blue accent)
-        const fillLight = new THREE.DirectionalLight(0x3a5585, 0.35);
+        // Secondary laser cyan rim light
+        const fillLight = new THREE.DirectionalLight(0x00f0ff, 0.6);
         fillLight.position.set(-25, 20, -25);
         this.scene.add(fillLight);
 
-        // Dynamic light following the player
-        this.playerLight = new THREE.PointLight(0xffeedd, 1.2, 18, 1.5);
+        // Dynamic light following the player (cyber neon)
+        this.playerLight = new THREE.PointLight(0xff0055, 1.4, 20, 1.4);
         this.playerLight.position.set(0, 3, 0);
         this.scene.add(this.playerLight);
 
@@ -138,28 +138,33 @@ class App {
         this.wallMeshes = [];
         const arenaSize = 50;
 
-        // Ground floor
+        // Ground floor (dark laser arena grid floor)
         const floorGeo = new THREE.PlaneGeometry(arenaSize, arenaSize);
         const floorMat = new THREE.MeshStandardMaterial({
-            color: 0x182c20, // dark moss green
-            roughness: 0.85,
-            metalness: 0.05
+            color: 0x070913,
+            roughness: 0.6,
+            metalness: 0.2
         });
         const floor = new THREE.Mesh(floorGeo, floorMat);
         floor.rotation.x = -Math.PI / 2;
         floor.receiveShadow = true;
         this.scene.add(floor);
 
-        // Grid lines across the large floor
-        const grid = new THREE.GridHelper(arenaSize, 50, 0xe94560, 0x223d2e);
+        // Laser grid across the floor (laser cyan and neon red matching menu grid)
+        const grid = new THREE.GridHelper(arenaSize, 50, 0xff0055, 0x00f0ff);
         grid.position.y = 0.01;
+        grid.material.opacity = 0.45;
+        grid.material.transparent = true;
         this.scene.add(grid);
 
-        // Outer Boundary Walls
+        // Ambient 3D Laser beams traversing the arena
+        this._createArenaLaserBeams();
+
+        // Outer Boundary Walls (High-tech cyber borders with neon glow)
         const outerWallMat = new THREE.MeshStandardMaterial({
-            color: 0x0c2540,
-            roughness: 0.5,
-            metalness: 0.3
+            color: 0x0b1326,
+            roughness: 0.35,
+            metalness: 0.5
         });
         const wallHeight = 3.5;
         const wallThickness = 1.0;
@@ -170,21 +175,29 @@ class App {
         this._createWall(wallThickness, wallHeight, arenaSize, -offset, wallHeight / 2, 0, outerWallMat);
         this._createWall(wallThickness, wallHeight, arenaSize, offset, wallHeight / 2, 0, outerWallMat);
 
-        // Inner Obstacles & Walls (maze/rooms)
+        // Outer neon laser strips on top of perimeter walls
+        const borderTrimMat = new THREE.MeshBasicMaterial({ color: 0xff0055 });
+        this._createNeonStrip(arenaSize, 0.08, 0.08, 0, wallHeight + 0.04, -offset, borderTrimMat);
+        this._createNeonStrip(arenaSize, 0.08, 0.08, 0, wallHeight + 0.04, offset, borderTrimMat);
+        this._createNeonStrip(0.08, 0.08, arenaSize, -offset, wallHeight + 0.04, 0, borderTrimMat);
+        this._createNeonStrip(0.08, 0.08, arenaSize, offset, wallHeight + 0.04, 0, borderTrimMat);
+
+        // Inner Obstacles & Walls (dark cyber blocks with laser neon edges)
         const obsMatA = new THREE.MeshStandardMaterial({
-            color: 0x3d2459, // deep purple
-            roughness: 0.45,
-            metalness: 0.2
+            color: 0x101528,
+            roughness: 0.3,
+            metalness: 0.6
         });
         const obsMatB = new THREE.MeshStandardMaterial({
-            color: 0x1f3c58, // deep navy
-            roughness: 0.45,
-            metalness: 0.2
+            color: 0x0a1020,
+            roughness: 0.3,
+            metalness: 0.6
         });
-        const trimMat = new THREE.MeshBasicMaterial({ color: 0xffcc00 });
+        const neonCyanMat = new THREE.MeshBasicMaterial({ color: 0x00f0ff });
+        const neonRedMat = new THREE.MeshBasicMaterial({ color: 0xff0055 });
 
         OBSTACLES.forEach((obs, index) => {
-            const h = 3.2; // Taller than players (2.0) to cast shadows and fully block sight
+            const h = 3.2;
             const geo = new THREE.BoxGeometry(obs.w, h, obs.d);
             const mat = (index % 2 === 0) ? obsMatA : obsMatB;
             const mesh = new THREE.Mesh(geo, mat);
@@ -194,11 +207,160 @@ class App {
             this.scene.add(mesh);
             this.wallMeshes.push(mesh);
 
-            // Styling cap on top of walls
-            const capGeo = new THREE.BoxGeometry(obs.w * 0.95, 0.1, obs.d * 0.95);
+            // Laser edge cap on top of walls
+            const trimMat = (index % 2 === 0) ? neonCyanMat : neonRedMat;
+            const capGeo = new THREE.BoxGeometry(obs.w * 0.98, 0.08, obs.d * 0.98);
             const cap = new THREE.Mesh(capGeo, trimMat);
-            cap.position.set(obs.x, h + 0.05, obs.z);
+            cap.position.set(obs.x, h + 0.04, obs.z);
             this.scene.add(cap);
+        });
+
+        // Corner Burger relaxing on the ground
+        this._createCornerBurger();
+    }
+
+    _createCornerBurger() {
+        const burgerGroup = new THREE.Group();
+
+        // 1. Bottom Bun
+        const bottomBunGeo = new THREE.CylinderGeometry(0.75, 0.68, 0.22, 20);
+        const bunMat = new THREE.MeshStandardMaterial({
+            color: 0xdf9b52, // Golden bun
+            roughness: 0.6,
+            metalness: 0.05
+        });
+        const bottomBun = new THREE.Mesh(bottomBunGeo, bunMat);
+        bottomBun.position.y = 0.11;
+        bottomBun.castShadow = true;
+        bottomBun.receiveShadow = true;
+        burgerGroup.add(bottomBun);
+
+        // 2. Juicy Patty (Meat)
+        const pattyGeo = new THREE.CylinderGeometry(0.8, 0.8, 0.2, 20);
+        const pattyMat = new THREE.MeshStandardMaterial({
+            color: 0x4a2412, // Dark grilled brown
+            roughness: 0.8,
+            metalness: 0.1
+        });
+        const patty = new THREE.Mesh(pattyGeo, pattyMat);
+        patty.position.y = 0.28;
+        patty.castShadow = true;
+        burgerGroup.add(patty);
+
+        // 3. Melted Cheese slice (square sticking out at angles)
+        const cheeseGeo = new THREE.BoxGeometry(1.22, 0.05, 1.22);
+        const cheeseMat = new THREE.MeshStandardMaterial({
+            color: 0xffb800, // Rich cheddar yellow
+            roughness: 0.4,
+            metalness: 0.1
+        });
+        const cheese = new THREE.Mesh(cheeseGeo, cheeseMat);
+        cheese.rotation.y = Math.PI / 4;
+        cheese.position.y = 0.38;
+        cheese.castShadow = true;
+        burgerGroup.add(cheese);
+
+        // 4. Fresh Lettuce (wavy green layer)
+        const lettuceGeo = new THREE.CylinderGeometry(0.86, 0.82, 0.08, 16);
+        const lettuceMat = new THREE.MeshStandardMaterial({
+            color: 0x44bb22, // Crisp green
+            roughness: 0.7,
+            metalness: 0.05
+        });
+        const lettuce = new THREE.Mesh(lettuceGeo, lettuceMat);
+        lettuce.position.y = 0.44;
+        burgerGroup.add(lettuce);
+
+        // 5. Tomato slices
+        const tomatoMat = new THREE.MeshStandardMaterial({
+            color: 0xdd2211,
+            roughness: 0.3,
+            metalness: 0.1
+        });
+        const tomatoA = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.42, 0.07, 16), tomatoMat);
+        tomatoA.position.set(-0.25, 0.51, 0.15);
+        burgerGroup.add(tomatoA);
+
+        const tomatoB = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.42, 0.07, 16), tomatoMat);
+        tomatoB.position.set(0.28, 0.51, -0.15);
+        burgerGroup.add(tomatoB);
+
+        // 6. Top Bun (Dome)
+        const topBunGeo = new THREE.SphereGeometry(0.8, 20, 14, 0, Math.PI * 2, 0, Math.PI * 0.5);
+        const topBun = new THREE.Mesh(topBunGeo, bunMat);
+        topBun.scale.set(1, 0.58, 1);
+        topBun.position.y = 0.53;
+        topBun.castShadow = true;
+        burgerGroup.add(topBun);
+
+        // 7. Sesame seeds on top bun
+        const seedMat = new THREE.MeshBasicMaterial({ color: 0xfff6df });
+        for (let i = 0; i < 22; i++) {
+            const seedGeo = new THREE.SphereGeometry(0.025, 6, 6);
+            seedGeo.scale(1, 0.4, 2);
+            const seed = new THREE.Mesh(seedGeo, seedMat);
+            const radius = 0.15 + Math.random() * 0.5;
+            const angle = Math.random() * Math.PI * 2;
+            const sx = Math.cos(angle) * radius;
+            const sz = Math.sin(angle) * radius;
+            const sy = 0.54 + Math.sqrt(Math.max(0, 0.8 * 0.8 - sx * sx - sz * sz)) * 0.56;
+            seed.position.set(sx, sy, sz);
+            seed.rotation.y = Math.random() * Math.PI;
+            seed.rotation.x = 0.2;
+            burgerGroup.add(seed);
+        }
+
+        // 8. Warm appetizing light on the burger
+        const burgerLight = new THREE.PointLight(0xffaa33, 1.0, 3.5);
+        burgerLight.position.set(0, 0.9, 0);
+        burgerGroup.add(burgerLight);
+
+        // Make burger much smaller (dużo mniejszy!)
+        burgerGroup.scale.set(0.38, 0.38, 0.38);
+
+        // Position the burger tucked right in the corner of the arena, tilted slightly as it relaxes
+        burgerGroup.position.set(22.8, 0, -22.8);
+        burgerGroup.rotation.y = 0.6;
+        burgerGroup.rotation.z = 0.04; // Slightly tilted relaxing angle
+        this.scene.add(burgerGroup);
+    }
+
+    _createNeonStrip(w, h, d, x, y, z, mat) {
+        const geo = new THREE.BoxGeometry(w, h, d);
+        const mesh = new THREE.Mesh(geo, mat);
+        mesh.position.set(x, y, z);
+        this.scene.add(mesh);
+    }
+
+    _createArenaLaserBeams() {
+        this.arenaLaserBeams = [];
+        const beamMatRed = new THREE.MeshBasicMaterial({
+            color: 0xff0055,
+            transparent: true,
+            opacity: 0.85
+        });
+        const beamMatCyan = new THREE.MeshBasicMaterial({
+            color: 0x00f0ff,
+            transparent: true,
+            opacity: 0.75
+        });
+
+        // Add criss-crossing aesthetic laser beams above the arena floor
+        const beamConfigs = [
+            { y: 1.6, z: -10, angle: 0.25, mat: beamMatRed, speed: 0.4 },
+            { y: 2.1, z: 8, angle: -0.35, mat: beamMatCyan, speed: -0.3 },
+            { y: 1.2, z: 16, angle: 0.15, mat: beamMatRed, speed: 0.5 },
+            { y: 2.4, z: -18, angle: -0.2, mat: beamMatCyan, speed: -0.4 }
+        ];
+
+        beamConfigs.forEach((cfg, idx) => {
+            const beamGeo = new THREE.CylinderGeometry(0.04, 0.04, 52, 8);
+            const beam = new THREE.Mesh(beamGeo, cfg.mat);
+            beam.rotation.z = Math.PI / 2;
+            beam.rotation.y = cfg.angle;
+            beam.position.set(0, cfg.y, cfg.z);
+            this.scene.add(beam);
+            this.arenaLaserBeams.push({ mesh: beam, baseZ: cfg.z, speed: cfg.speed });
         });
     }
 
@@ -329,10 +491,30 @@ class App {
             }
         });
 
-        // Mouse controls: LMB shoots gun for Olafo Killer
+        // Mouse controls:
+        let isMouseDown = false;
         window.addEventListener('mousedown', (e) => {
-            if (e.button === 0 && this.game && this.game.state === 'PLAYING' && this.game.myRole === 'killer') {
-                this.game.shootGun();
+            isMouseDown = true;
+            if (this.game && this.game.state === 'PLAYING' && this.game.myRole === 'killer') {
+                if (document.pointerLockElement !== document.body) {
+                    try {
+                        document.body.requestPointerLock();
+                    } catch (err) {}
+                }
+                if (e.button === 0) {
+                    this.game.shootGun();
+                }
+            }
+        });
+
+        window.addEventListener('mouseup', () => {
+            isMouseDown = false;
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (!this.game) return;
+            if (document.pointerLockElement === document.body || isMouseDown) {
+                this.game.onMouseMove(e.movementX || 0, e.movementY || 0);
             }
         });
     }
@@ -415,6 +597,14 @@ class App {
                     2.5,
                     this.game.localPlayer.position.z
                 );
+            }
+
+            // Animate ambient arena laser beams
+            if (this.arenaLaserBeams && this.arenaLaserBeams.length) {
+                const time = this.clock.getElapsedTime();
+                this.arenaLaserBeams.forEach(item => {
+                    item.mesh.position.z = item.baseZ + Math.sin(time * item.speed) * 4.0;
+                });
             }
         }
         if (this.renderer && this.scene && this.camera) {

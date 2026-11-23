@@ -29,14 +29,21 @@
     <div id="global-error-box" style="display:none; position:fixed; top:0; left:0; right:0; background:#ff2244; color:#fff; padding:12px; font-weight:bold; z-index:9999; text-align:center; font-family:sans-serif;"></div>
     <!-- ============ MAIN MENU SCREEN ============ -->
     <div id="screen-menu" class="screen active">
+        <!-- Glowing red laser beams passing across screen -->
+        <div class="laser-bg-container">
+            <div class="laser-grid-bg"></div>
+            <div class="red-laser-beam red-laser-1"></div>
+            <div class="red-laser-beam red-laser-2"></div>
+            <div class="red-laser-beam red-laser-3"></div>
+            <div class="red-laser-beam red-laser-4"></div>
+            <div class="red-laser-beam red-laser-5"></div>
+        </div>
+
         <div class="menu-fullscreen">
-            <div class="menu-olafo-side">
-                <img src="assets/olafo_killer.png" alt="Olafo Killer" class="menu-olafo-idle">
-            </div>
             <div class="menu-content-side">
                 <h1 class="game-title">
                     <span class="title-killer">OLAFO KILLER</span>
-                    <span class="title-vs">vs</span>
+                    <span class="title-vs">VS</span>
                     <span class="title-pierogi">PIEROGI</span>
                 </h1>
                 <div class="menu-form">
@@ -54,23 +61,41 @@
                 <p id="menu-error" class="error-text hidden"></p>
                 <p id="menu-status" class="status-text hidden"></p>
             </div>
+            <div class="menu-olafo-side">
+                <img src="assets/olafo_killer.png" alt="Olafo Killer" class="menu-olafo-idle">
+            </div>
         </div>
     </div>
 
     <!-- ============ LOBBY SCREEN ============ -->
     <div id="screen-lobby" class="screen">
-        <div class="lobby-container">
-            <h2>Lobby</h2>
-            <div class="room-code-display">
-                Kod pokoju: <span id="room-code-text" class="room-code"></span>
+        <!-- Glowing red laser beams passing across lobby -->
+        <div class="laser-bg-container">
+            <div class="laser-grid-bg"></div>
+            <div class="red-laser-beam red-laser-1"></div>
+            <div class="red-laser-beam red-laser-2"></div>
+            <div class="red-laser-beam red-laser-3"></div>
+            <div class="red-laser-beam red-laser-4"></div>
+            <div class="red-laser-beam red-laser-5"></div>
+        </div>
+
+        <div class="menu-fullscreen">
+            <div class="menu-content-side">
+                <h2 class="lobby-title">LOBBY</h2>
+                <div class="room-code-display">
+                    KOD POKOJU: <span id="room-code-text" class="room-code"></span>
+                </div>
+                <div class="player-list-section">
+                    <h3>GRACZE (<span id="player-count">0</span>)</h3>
+                    <ul id="player-list"></ul>
+                </div>
+                <button id="btn-start" class="btn btn-start hidden">ROZPOCZNIJ RUNDĘ!</button>
+                <p id="lobby-status" class="status-text">Czekam na graczy...</p>
+                <button id="btn-leave" class="btn btn-danger">OPUŚĆ LOBBY</button>
             </div>
-            <div class="player-list-section">
-                <h3>Gracze (<span id="player-count">0</span>)</h3>
-                <ul id="player-list"></ul>
+            <div class="menu-olafo-side">
+                <img src="assets/olafo_killer.png" alt="Olafo Killer" class="menu-olafo-idle">
             </div>
-            <button id="btn-start" class="btn btn-start hidden">Rozpocznij Rundę!</button>
-            <p id="lobby-status" class="status-text">Czekam na graczy...</p>
-            <button id="btn-leave" class="btn btn-danger">Opuść Lobby</button>
         </div>
     </div>
 
