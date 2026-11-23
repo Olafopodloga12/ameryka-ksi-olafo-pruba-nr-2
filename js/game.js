@@ -2,7 +2,7 @@
 // game.js — Game state machine, round logic, host authority
 // ============================================================
 import * as THREE from '../lib/three.module.js';
-import { Player } from './player.js';
+import { Player, OBSTACLES, ARENA_HALF } from './player.js';
 
 // Game states
 export const GameState = {
@@ -73,6 +73,11 @@ export class Game {
         this.twarogCooldown = 0;
         this.TWAROG_COOLDOWN_TIME = 5.0;
         this._twarogTexture = null;
+
+        // Olafo Gun Skill [LPM / F]
+        this.bullets = [];
+        this.gunCooldown = 0;
+        this.GUN_COOLDOWN_TIME = 4.0;
 
         // Network tick timer
         this.netTickTimer = 0;
@@ -186,6 +191,14 @@ export class Game {
                 this._createTwarogMesh(data.id, data.x, data.z, data.radius, data.duration);
                 if (this.network.isHost) {
                     this.network.broadcast('twarog-spawn', data);
+                }
+                break;
+
+            case 'gun-shoot':
+                // Olafo fired a gun bullet
+                this._createBullet(data.id, data.startX, data.startY, data.startZ, data.dirX, data.dirY, data.dirZ, data.speed);
+                if (this.network.isHost) {
+                    this.network.broadcast('gun-shoot', data);
                 }
                 break;
 
@@ -386,8 +399,20 @@ export class Game {
             this.ui.updateTwarogCooldown(this.twarogCooldown, this.TWAROG_COOLDOWN_TIME);
         }
 
+        // Update Olafo gun skill cooldown
+        if (this.gunCooldown > 0) {
+            this.gunCooldown -= dt;
+            if (this.gunCooldown < 0) this.gunCooldown = 0;
+        }
+        if (this.myRole === 'killer') {
+            this.ui.updateGunCooldown(this.gunCooldown, this.GUN_COOLDOWN_TIME);
+        }
+
         // Update twarog puddles and check slowdown on Olafo Killer
         this._updateTwarogPuddles(dt);
+
+        // Update flying bullets & hit detection
+        this._updateBullets(dt);
 
         // Update remote players (interpolation)
         this.players.forEach((player) => {
@@ -566,6 +591,152 @@ export class Game {
             killer.isSlowed = isSlowed;
             if (this.myRole === 'killer') {
                 this.ui.showSlowedBanner(isSlowed);
+            }
+        }
+    }
+
+    // === OLAFO GUN MECHANIC ===
+
+    shootGun() {
+        if (this.state !== GameState.PLAYING) return;
+        if (this.myRole !== 'killer') return;
+        if (!this.localPlayer || !this.localPlayer.alive) return;
+        if (this.gunCooldown > 0) return;
+
+        // Calculate direction where camera is looking
+        const cosP = Math.cos(this.tppPitch);
+        const sinP = Math.sin(this.tppPitch);
+        const sinY = Math.sin(this.tppYaw);
+        const cosY = Math.cos(this.tppYaw);
+
+        const dirX = sinY * cosP;
+        const dirY = sinP;
+        const dirZ = cosY * cosP;
+
+        // Start position in front of Olafo
+        const startX = this.localPlayer.position.x + dirX * 0.9;
+        const startY = this.localPlayer.position.y + 1.2 + dirY * 0.9;
+        const startZ = this.localPlayer.position.z + dirZ * 0.9;
+
+        const speed = 36.0;
+        const id = 'bullet_' + Math.random().toString(36).substring(2, 9);
+
+        this._createBullet(id, startX, startY, startZ, dirX, dirY, dirZ, speed);
+        this.gunCooldown = this.GUN_COOLDOWN_TIME;
+
+        // Broadcast to other players
+        const payload = { id, startX, startY, startZ, dirX, dirY, dirZ, speed };
+        if (this.network.isHost) {
+            this.network.broadcast('gun-shoot', payload);
+        } else {
+            this.network.sendToHost('gun-shoot', payload);
+        }
+    }
+
+    _createBullet(id, startX, startY, startZ, dirX, dirY, dirZ, speed) {
+        if (this.bullets.find(b => b.id === id)) return;
+
+        // Glowing energy bullet mesh
+        const group = new THREE.Group();
+        const coreGeo = new THREE.SphereGeometry(0.22, 12, 12);
+        const coreMat = new THREE.MeshBasicMaterial({ color: 0xff3300 });
+        const core = new THREE.Mesh(coreGeo, coreMat);
+        group.add(core);
+
+        const glowGeo = new THREE.SphereGeometry(0.32, 10, 10);
+        const glowMat = new THREE.MeshBasicMaterial({
+            color: 0xffaa00,
+            transparent: true,
+            opacity: 0.6
+        });
+        const glow = new THREE.Mesh(glowGeo, glowMat);
+        group.add(glow);
+
+        const light = new THREE.PointLight(0xff5500, 2.5, 6.0);
+        group.add(light);
+
+        group.position.set(startX, startY, startZ);
+        this.scene.add(group);
+
+        this.bullets.push({
+            id,
+            mesh: group,
+            x: startX,
+            y: startY,
+            z: startZ,
+            vx: dirX * speed,
+            vy: dirY * speed,
+            vz: dirZ * speed,
+            life: 2.2
+        });
+    }
+
+    _updateBullets(dt) {
+        for (let i = this.bullets.length - 1; i >= 0; i--) {
+            const b = this.bullets[i];
+            let removeBullet = false;
+
+            b.x += b.vx * dt;
+            b.y += b.vy * dt;
+            b.z += b.vz * dt;
+            b.mesh.position.set(b.x, b.y, b.z);
+            b.life -= dt;
+
+            // 1. Boundary & floor check
+            if (Math.abs(b.x) > ARENA_HALF || Math.abs(b.z) > ARENA_HALF || b.y < 0.1 || b.y > 6.0) {
+                removeBullet = true;
+            }
+
+            // 2. Obstacle / wall collision
+            if (!removeBullet) {
+                for (const obs of OBSTACLES) {
+                    const halfW = obs.w / 2 + 0.2;
+                    const halfD = obs.d / 2 + 0.2;
+                    if (Math.abs(b.x - obs.x) < halfW && Math.abs(b.z - obs.z) < halfD && b.y < 3.2) {
+                        removeBullet = true;
+                        break;
+                    }
+                }
+            }
+
+            // 3. Pieróg hit detection (bullet eliminates Pieróg!)
+            if (!removeBullet) {
+                for (const [id, player] of this.players) {
+                    if (player.id !== this.killerId && player.alive) {
+                        const dist = Math.hypot(b.x - player.position.x, b.z - player.position.z);
+                        if (dist < 1.35 && b.y >= 0.1 && b.y <= 2.5) {
+                            removeBullet = true;
+
+                            // Pierog was shot and eliminated!
+                            const killer = this.players.get(this.killerId);
+                            const killerName = killer ? killer.name : 'Olafo Killer';
+                            const victimName = player.name;
+
+                            player.kill();
+                            this.alivePierogi--;
+
+                            if (this.network.isHost) {
+                                this.network.broadcast('player-killed', {
+                                    victimId: player.id,
+                                    killerName,
+                                    victimName
+                                });
+                            }
+
+                            this._onPlayerKilled(player.id, killerName, victimName);
+
+                            if (this.network.isHost && this.alivePierogi <= 0) {
+                                this._endRound('killer');
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
+
+            if (removeBullet || b.life <= 0) {
+                this.scene.remove(b.mesh);
+                this.bullets.splice(i, 1);
             }
         }
     }
@@ -772,22 +943,23 @@ export class Game {
             );
         } else if (this.localPlayer) {
             if (this.myRole === 'killer') {
-                // Fortnite Over-The-Shoulder TPP Camera for Olafo Killer
+                // Centered TPP Camera for Olafo Killer (Non-inverted look)
                 const cosP = Math.cos(this.tppPitch);
                 const sinP = Math.sin(this.tppPitch);
                 const sinY = Math.sin(this.tppYaw);
                 const cosY = Math.cos(this.tppYaw);
 
-                const camX = this.localPlayer.position.x - sinY * (this.tppDistance * cosP) + cosY * this.tppShoulder;
-                const camY = this.localPlayer.position.y + this.tppHeight + sinP * this.tppDistance;
-                const camZ = this.localPlayer.position.z - cosY * (this.tppDistance * cosP) - sinY * this.tppShoulder;
+                // Camera directly centered behind Olafo
+                const camX = this.localPlayer.position.x - sinY * (this.tppDistance * cosP);
+                const camY = this.localPlayer.position.y + this.tppHeight - sinP * (this.tppDistance * 0.4);
+                const camZ = this.localPlayer.position.z - cosY * (this.tppDistance * cosP);
 
                 this.camera.position.set(camX, camY, camZ);
 
-                // Aim target 25 units ahead
+                // Aim target ahead (pitch up looks up, pitch down looks down)
                 const lookDist = 25;
                 const targetX = this.localPlayer.position.x + sinY * (lookDist * cosP);
-                const targetY = this.localPlayer.position.y + this.tppHeight - sinP * lookDist;
+                const targetY = this.localPlayer.position.y + this.tppHeight + sinP * lookDist;
                 const targetZ = this.localPlayer.position.z + cosY * (lookDist * cosP);
 
                 this.camera.lookAt(targetX, targetY, targetZ);
@@ -815,10 +987,10 @@ export class Game {
 
     onMouseMove(movementX, movementY) {
         if (this.state === GameState.PLAYING && this.myRole === 'killer' && this.localPlayer && this.localPlayer.alive) {
-            this.tppYaw -= movementX * 0.003;
+            // Natural non-inverted mouse look: moving mouse right rotates view right, moving mouse up looks up
+            this.tppYaw += movementX * 0.003;
             this.tppPitch -= movementY * 0.003;
-            // Clamp pitch (cannot look fully up or fully down)
-            this.tppPitch = Math.max(-0.45, Math.min(0.65, this.tppPitch));
+            this.tppPitch = Math.max(-0.55, Math.min(0.65, this.tppPitch));
         }
     }
 
@@ -832,6 +1004,13 @@ export class Game {
                     this.spawnTwarog(this.localPlayer.position.x, this.localPlayer.position.z);
                     this.twarogCooldown = this.TWAROG_COOLDOWN_TIME;
                 }
+            }
+        }
+
+        // Olafo fires gun with 'F' or 'Space'
+        if (code === 'KeyF' || code === 'Space') {
+            if (this.myRole === 'killer' && this.localPlayer && this.localPlayer.alive && this.state === GameState.PLAYING) {
+                this.shootGun();
             }
         }
     }
@@ -860,6 +1039,16 @@ export class Game {
         });
         this.twarogPuddles = [];
         this.twarogCooldown = 0;
+
+        // Clean all bullets
+        this.bullets.forEach(b => {
+            if (b.mesh && b.mesh.parent) {
+                b.mesh.parent.remove(b.mesh);
+            }
+        });
+        this.bullets = [];
+        this.gunCooldown = 0;
+
         this.ui.showSlowedBanner(false);
     }
 

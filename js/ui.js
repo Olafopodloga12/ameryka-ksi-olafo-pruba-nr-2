@@ -43,6 +43,11 @@ export class UI {
         this.twarogLabel = document.getElementById('hud-twarog-label');
         this.slowedBanner = document.getElementById('hud-slowed-banner');
 
+        // Olafo Gun Skill
+        this.gunSkill = document.getElementById('hud-gun-skill');
+        this.gunCooldownBar = document.getElementById('hud-gun-cooldown-bar');
+        this.gunLabel = document.getElementById('hud-gun-label');
+
         // Overlays
         this.countdownOverlay = document.getElementById('countdown-overlay');
         this.countdownNumber = document.getElementById('countdown-number');
@@ -141,9 +146,11 @@ export class UI {
         if (isKiller) {
             this.hudStaminaContainer.classList.add('hidden');
             if (this.twarogSkill) this.twarogSkill.classList.add('hidden');
+            if (this.gunSkill) this.gunSkill.classList.remove('hidden');
         } else {
             this.hudStaminaContainer.classList.remove('hidden');
             if (this.twarogSkill) this.twarogSkill.classList.remove('hidden');
+            if (this.gunSkill) this.gunSkill.classList.add('hidden');
         }
 
         if (this.slowedBanner) this.slowedBanner.classList.add('hidden');
@@ -153,6 +160,7 @@ export class UI {
     hideHUD() {
         this.hud.classList.add('hidden');
         if (this.slowedBanner) this.slowedBanner.classList.add('hidden');
+        if (this.gunSkill) this.gunSkill.classList.add('hidden');
     }
 
     updateTwarogCooldown(remaining, total) {
@@ -166,6 +174,20 @@ export class UI {
             const pct = Math.max(0, Math.min(100, ((total - remaining) / total) * 100));
             this.twarogCooldownBar.style.width = `${pct}%`;
             this.twarogSkill.classList.remove('ready');
+        }
+    }
+
+    updateGunCooldown(remaining, total) {
+        if (!this.gunSkill) return;
+        if (remaining <= 0) {
+            this.gunLabel.textContent = 'PISTOLET [LPM / F]: GOTOWY';
+            this.gunCooldownBar.style.width = '100%';
+            this.gunSkill.classList.add('ready');
+        } else {
+            this.gunLabel.textContent = `PISTOLET [LPM / F]: ${remaining.toFixed(1)}s`;
+            const pct = Math.max(0, Math.min(100, ((total - remaining) / total) * 100));
+            this.gunCooldownBar.style.width = `${pct}%`;
+            this.gunSkill.classList.remove('ready');
         }
     }
 
