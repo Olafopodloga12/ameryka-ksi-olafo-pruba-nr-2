@@ -19,4 +19,4 @@ jobs:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          server-dir: /home/host736196/domains/godot.host736196.xce.pl/public_html/olaf-vs-pierogi
+          server-dir: /home/host736196/domains/godot.host736196.xce.pl/public_html/olaf-vs-pierogi/
