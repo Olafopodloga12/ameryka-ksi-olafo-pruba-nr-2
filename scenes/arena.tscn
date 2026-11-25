@@ -1,0 +1,32 @@
+[gd_scene load_steps=3 format=3 uid="uid://carena3d"]
+
+[ext_resource type="Script" path="res://scripts/arena.gd" id="1_arena"]
+
+[sub_resource type="Environment" id="Environment_cyber"]
+background_mode = 1
+background_color = Color(0.0392157, 0.0470588, 0.0862745, 1)
+ambient_light_source = 2
+ambient_light_color = Color(0.18, 0.25, 0.42, 1)
+ambient_light_energy = 0.75
+fog_enabled = true
+fog_mode = 1
+fog_light_color = Color(0.0392157, 0.0470588, 0.0862745, 1)
+fog_density = 0.014
+
+[node name="Arena" type="Node3D"]
+script = ExtResource("1_arena")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_cyber")
+
+[node name="MainSunLight" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.78, -0.45, 0.43, 0, 0.69, 0.72, -0.62, -0.56, 0.54, 30, 45, 25)
+light_color = Color(1, 0.72, 0.85, 1)
+light_energy = 1.25
+shadow_enabled = true
+shadow_bias = 0.02
+
+[node name="CyanRimLight" type="DirectionalLight3D" parent="."]
+transform = Transform3D(-0.7, -0.4, 0.58, 0, 0.82, 0.57, -0.71, 0.4, -0.57, -25, 20, -25)
+light_color = Color(0, 0.941176, 1, 1)
+light_energy = 0.65

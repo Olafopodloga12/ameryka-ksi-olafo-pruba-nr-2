@@ -1,0 +1,36 @@
+[gd_scene load_steps=6 format=3 uid="uid://cbullet3d"]
+
+[ext_resource type="Script" path="res://scripts/bullet.gd" id="1_bullet"]
+
+[sub_resource type="SphereMesh" id="SphereMesh_core"]
+radius = 0.22
+height = 0.44
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_core"]
+shading_mode = 0
+albedo_color = Color(1, 0.18, 0, 1)
+
+[sub_resource type="SphereMesh" id="SphereMesh_glow"]
+radius = 0.34
+height = 0.68
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_glow"]
+shading_mode = 0
+transparency = 1
+albedo_color = Color(1, 0.68, 0, 0.58)
+
+[node name="Bullet" type="Node3D"]
+script = ExtResource("1_bullet")
+
+[node name="CoreMesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("SphereMesh_core")
+material_override = SubResource("StandardMaterial3D_core")
+
+[node name="GlowMesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("SphereMesh_glow")
+material_override = SubResource("StandardMaterial3D_glow")
+
+[node name="OmniLight3D" type="OmniLight3D" parent="."]
+light_color = Color(1, 0.35, 0, 1)
+light_energy = 2.5
+omni_range = 6.0

@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://ctwarog_puddle"]
+
+[ext_resource type="Script" path="res://scripts/twarog_puddle.gd" id="1_twarog"]
+
+[node name="TwarogPuddle" type="Node3D"]
+script = ExtResource("1_twarog")

@@ -1,40 +1,31 @@
-# Olafo Killer vs Pierogi 🥟🔪
+# Olafo Killer vs Pierogi (Godot 4.7)
 
-Wieloosobowa gra przeglądarkowa 3D z mechaniką tag/survival, grafikami 2D (billboard sprites) w trójwymiarowej arenie i bezpośrednią komunikacją P2P przez **WebRTC (PeerJS Cloud)**.
+Trójwymiarowa gra multiplayer stworzona w **Godot Engine 4.7** (GDScript, Jolt Physics, ENet + wykrywanie kodem pokoju w sieci lokalnej/localhost) z grafikami billboardowymi 2D w laserowej arenie 3D.
 
-## 🎮 Zasady gry
+## Zasady gry
 
-1. **Lobby**:
-   - Jeden z graczy klika **"Stwórz Lobby"** i otrzymuje 6-znakowy kod pokoju.
-   - Pozostali gracze wpisują swój nick oraz kod i klikają **"Dołącz"**.
-   - Host może kliknąć **"Rozpocznij Rundę!"** (działa także solo do testów).
-2. **Runda i Role**:
-   - **Olafo Killer** 🔪:
-     - **Widok trzecioosobowy (TPP) jak w Fortnite!** Kamera znajduje się tuż za prawym ramieniem, a myszką rozglądasz się i celujesz.
-     - Klawisze **W, A, S, D** poruszają Olafo w kierunku, w którym patrzy kamera (W = do przodu, S = do tyłu, A/D = strafe).
-     - Olafo jest szybszy i ma stały sprint.
-     - **Uwaga na twaróg!** Jeśli wejdziesz w plamę twarogu zostawioną przez Pieroga, zostaniesz **drastycznie spowolniony (-55%)**!
-   - **Pierogi** 🥟:
-     - **Klasyczny widok z góry / izometryczny** (bez zmian).
-     - Muszą uciekać, chować się za wysokimi ścianami i przetrwać 60 sekund.
-     - **Umiejętność Twarogu [E]**: Pieróg może namalować na ziemi białą plamę twarogu (cooldown 5s). Każda plama leży na podłodze przez 12 sekund i spowalnia goniącego Olafo!
-3. **Niewidoczność zza ścian (Line of Sight) i Cienie**:
-   - Jeśli między Olafo a Pierogiem znajduje się ściana lub przeszkoda, gracz za ścianą jest **całkowicie niewidoczny** (zarówno postać, jak i nick).
-   - Ściany rzucają długie, dynamiczne cienie na podłoże.
-4. **Tryb Obserwatora (Spectator)**:
-   - Złapany gracz zmienia się w poległego pieroga (`dead_pierog.png`) i może swobodnie latać kamerą po mapie.
-5. **Koniec rundy i powrót**:
-   - Po skończonej rundzie pojawia się ekran wyników, po czym po 5 sekundach wszyscy automatycznie wracają do lobby.
+1. **Menu i Lobby**:
+   - Wpisz swój nick i kliknij **STWÓRZ LOBBY**, aby otrzymać 6-znakowy kod pokoju (kliknij na kod w lobby, aby skopiować).
+   - Inni gracze mogą dołączyć klikając **DOŁĄCZ DO LOBBY** i wpisując **6-znakowy kod pokoju** (w LAN lub na tym samym komputerze) albo bezpośredni adres **IP:PORT** (np. `127.0.0.1:7777`).
+   - Host klika **ROZPOCZNIJ RUNDĘ!** (działa również w trybie solo do testowania).
+2. **Role w rundzie (60 sekund)**:
+   - **OLAFO KILLER**:
+     - Gra z **kamery trzecioosobowej (TPP)** z detekcją kolizji ścian (kamera nie przenika przez przeszkody ani ściany).
+     - Może **przechodzić przez półprzezroczyste czerwone ściany laserowe**, które blokują Pierogi przed nieskończonym uciekaniem (loopowaniem) wokół przeszkód.
+     - **Pistolet `[LPM / F / Spacja]`**: wystrzeliwuje pocisk energii eliminujący Pieroga jednym trafieniem (animacja pojawiajacego się pistoletu z odrzutem góra-dół, cooldown 4s).
+   - **PIERÓG**:
+     - Klasyczna **kamera z góry / izometryczna**, sprint ze staminą (`Shift`).
+     - **Twaróg `[E]`**: zostawia na ziemi białą plamę twarogu na 12 sekund (cooldown 5s), która spowalnia Olafo o **58%**.
+3. **Dodatki na mapie**:
+   - Każda runda losuje nowe punkty startowe z 24 pozycji na arenie `50x50`.
+   - Zlikwidowani gracze zamieniają się w `dead_pierog.png` i przechodzą w tryb obserwatora (**WASD + mysz + Spacja/Shift**).
+   - W północno-wschodnim rogu mapy leży miniaturowy burger.
 
-## 🕹️ Sterowanie
+## Sterowanie
 
-- **W, A, S, D** — Poruszanie się (dla Olafo względem celownika kamery)
-- **Myszka** — Rozglądanie się kamerą TPP (dla Olafo, kliknij na ekran, aby zablokować kursor)
+- **W, A, S, D / Strzałki** — Ruch (Olafo względem kamery, Pieróg w układzie mapy)
+- **Myszka** — Obrót kamery (Olafo TPP i Obserwator)
 - **Shift** — Sprint
-- **E** — **Rzucenie plamy twarogu na ziemię** (tylko Pieróg, cooldown 5s)
-- **Kliknięcie na kod w lobby** — Skopiowanie do schowka
-
-## 🚀 Jak uruchomić?
-
-Uruchom plik:
-👉 **`start_game.bat`** (lub otwórz w przeglądarce `http://localhost:8080`).
+- **E** — Plama twarogu (Pieróg)
+- **LPM / F / Spacja** — Strzał z pistoletu (Olafo)
+- **ESC** — Pauza / odblokowanie kursora

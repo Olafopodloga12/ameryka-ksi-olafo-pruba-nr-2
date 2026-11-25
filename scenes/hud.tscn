@@ -1,0 +1,385 @@
+[gd_scene load_steps=2 format=3 uid="uid://chud_overlay"]
+
+[ext_resource type="Script" path="res://scripts/hud.gd" id="1_hud"]
+
+[node name="HUD" type="CanvasLayer"]
+layer = 10
+script = ExtResource("1_hud")
+
+[node name="HUDRoot" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="TopLeftRolePanel" type="PanelContainer" parent="HUDRoot"]
+layout_mode = 0
+offset_left = 20.0
+offset_top = 20.0
+offset_right = 190.0
+offset_bottom = 64.0
+mouse_filter = 2
+
+[node name="RoleLabel" type="Label" parent="HUDRoot/TopLeftRolePanel"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "PIEROG"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="TopCenterPanel" type="PanelContainer" parent="HUDRoot"]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -56.0
+offset_top = 16.0
+offset_right = 56.0
+offset_bottom = 78.0
+grow_horizontal = 2
+mouse_filter = 2
+
+[node name="TimerLabel" type="Label" parent="HUDRoot/TopCenterPanel"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 42
+text = "60"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="TopRightBox" type="VBoxContainer" parent="HUDRoot"]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -260.0
+offset_top = 20.0
+offset_right = -20.0
+offset_bottom = 320.0
+grow_horizontal = 0
+theme_override_constants/separation = 8
+mouse_filter = 2
+
+[node name="AlivePanel" type="PanelContainer" parent="HUDRoot/TopRightBox"]
+layout_mode = 2
+size_flags_horizontal = 8
+mouse_filter = 2
+
+[node name="AliveLabel" type="Label" parent="HUDRoot/TopRightBox/AlivePanel"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "PIEROGI: 0/0"
+
+[node name="KillFeedVBox" type="VBoxContainer" parent="HUDRoot/TopRightBox"]
+layout_mode = 2
+size_flags_horizontal = 8
+theme_override_constants/separation = 4
+mouse_filter = 2
+
+[node name="BottomRightCorner" type="VBoxContainer" parent="HUDRoot"]
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -280.0
+offset_top = -98.0
+offset_right = -20.0
+offset_bottom = -20.0
+grow_horizontal = 0
+grow_vertical = 0
+alignment = 2
+theme_override_constants/separation = 8
+mouse_filter = 2
+
+[node name="StaminaBox" type="Control" parent="HUDRoot/BottomRightCorner"]
+custom_minimum_size = Vector2(260, 24)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="StaminaBg" type="ColorRect" parent="HUDRoot/BottomRightCorner/StaminaBox"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.04, 0.08, 0.06, 0.85)
+
+[node name="StaminaFill" type="ColorRect" parent="HUDRoot/BottomRightCorner/StaminaBox"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0, 1, 0.4, 0.85)
+
+[node name="StaminaBorder" type="Panel" parent="HUDRoot/BottomRightCorner/StaminaBox"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="StaminaLabel" type="Label" parent="HUDRoot/BottomRightCorner/StaminaBox"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 1)
+theme_override_constants/shadow_outline_size = 4
+theme_override_font_sizes/font_size = 12
+text = "SPRINT [SHIFT]"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="AbilityBox" type="Control" parent="HUDRoot/BottomRightCorner"]
+custom_minimum_size = Vector2(260, 34)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="AbilityBg" type="ColorRect" parent="HUDRoot/BottomRightCorner/AbilityBox"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.12, 0.02, 0.03, 0.85)
+
+[node name="AbilityFill" type="ColorRect" parent="HUDRoot/BottomRightCorner/AbilityBox"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(1, 0, 0.266667, 1)
+
+[node name="AbilityBorder" type="Panel" parent="HUDRoot/BottomRightCorner/AbilityBox"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="AbilityLabel" type="Label" parent="HUDRoot/BottomRightCorner/AbilityBox"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 1)
+theme_override_constants/shadow_outline_size = 4
+theme_override_font_sizes/font_size = 14
+text = "TWAROG [E]: GOTOWY"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="SlowedBanner" type="PanelContainer" parent="HUDRoot"]
+visible = false
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -210.0
+offset_top = 104.0
+offset_right = 210.0
+offset_bottom = 148.0
+grow_horizontal = 2
+mouse_filter = 2
+
+[node name="SlowedLabel" type="Label" parent="HUDRoot/SlowedBanner"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.1, 0.1, 0.1, 1)
+theme_override_font_sizes/font_size = 16
+text = "UGRZAZLES W TWAROGU! (-58% PREDKOSCI)"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="SpectatorBanner" type="PanelContainer" parent="HUDRoot"]
+visible = false
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -190.0
+offset_top = -90.0
+offset_right = 190.0
+offset_bottom = -20.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
+
+[node name="SpecVBox" type="VBoxContainer" parent="HUDRoot/SpectatorBanner"]
+layout_mode = 2
+
+[node name="SpecTitle" type="Label" parent="HUDRoot/SpectatorBanner/SpecVBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.85, 0.88, 0.95, 1)
+theme_override_font_sizes/font_size = 20
+text = "OBSERWUJESZ"
+horizontal_alignment = 1
+
+[node name="SpecHint" type="Label" parent="HUDRoot/SpectatorBanner/SpecVBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.6, 0.65, 0.72, 1)
+theme_override_font_sizes/font_size = 12
+text = "WASD + mysz aby latac | Spacja / Shift gora / dol"
+horizontal_alignment = 1
+
+[node name="CountdownOverlay" type="ColorRect" parent="."]
+visible = false
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.65)
+
+[node name="CountdownLabel" type="Label" parent="CountdownOverlay"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -150.0
+offset_top = -150.0
+offset_right = 150.0
+offset_bottom = 150.0
+grow_horizontal = 2
+grow_vertical = 2
+pivot_offset = Vector2(150, 150)
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_shadow_color = Color(1, 0, 0.333333, 0.75)
+theme_override_constants/shadow_outline_size = 24
+theme_override_font_sizes/font_size = 160
+text = "3"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ResultOverlay" type="ColorRect" parent="."]
+visible = false
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.72)
+
+[node name="ResultPanel" type="PanelContainer" parent="ResultOverlay"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -250.0
+offset_top = -140.0
+offset_right = 250.0
+offset_bottom = 140.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="ResultVBox" type="VBoxContainer" parent="ResultOverlay/ResultPanel"]
+layout_mode = 2
+theme_override_constants/separation = 12
+alignment = 1
+
+[node name="ResultTitle" type="Label" parent="ResultOverlay/ResultPanel/ResultVBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 36
+text = "WYNIK"
+horizontal_alignment = 1
+
+[node name="ResultSubtitle" type="Label" parent="ResultOverlay/ResultPanel/ResultVBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.75, 0.78, 0.85, 1)
+theme_override_font_sizes/font_size = 16
+text = "..."
+horizontal_alignment = 1
+
+[node name="ResultStats" type="Label" parent="ResultOverlay/ResultPanel/ResultVBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.92, 0.96, 1)
+theme_override_font_sizes/font_size = 15
+text = "..."
+horizontal_alignment = 1
+
+[node name="ResultCountdown" type="Label" parent="ResultOverlay/ResultPanel/ResultVBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.55, 0.6, 0.68, 1)
+theme_override_font_sizes/font_size = 13
+text = "Powrót do lobby za 5s..."
+horizontal_alignment = 1
+
+[node name="PauseOverlay" type="ColorRect" parent="."]
+visible = false
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.55)
+
+[node name="PausePanel" type="PanelContainer" parent="PauseOverlay"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -160.0
+offset_top = -90.0
+offset_right = 160.0
+offset_bottom = 90.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="PauseVBox" type="VBoxContainer" parent="PauseOverlay/PausePanel"]
+layout_mode = 2
+theme_override_constants/separation = 12
+alignment = 1
+
+[node name="PauseTitle" type="Label" parent="PauseOverlay/PausePanel/PauseVBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "PAUZA"
+horizontal_alignment = 1
+
+[node name="BtnResume" type="Button" parent="PauseOverlay/PausePanel/PauseVBox"]
+layout_mode = 2
+text = "WZNÓW GRĘ"
+
+[node name="BtnLeaveGame" type="Button" parent="PauseOverlay/PausePanel/PauseVBox"]
+layout_mode = 2
+text = "OPUŚĆ GRĘ"
+
+[node name="RedFlash" type="ColorRect" parent="."]
+visible = false
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(1, 0, 0.1, 0.5)
