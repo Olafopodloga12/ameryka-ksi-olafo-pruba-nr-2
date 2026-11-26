@@ -1,0 +1,30 @@
+[gd_scene format=3 uid="uid://cwallblock"]
+
+[ext_resource type="Script" path="res://scripts/wall_block.gd" id="1_wall"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_default"]
+size = Vector3(2.5, 3.2, 2.5)
+
+[sub_resource type="BoxMesh" id="BoxMesh_body"]
+size = Vector3(2.5, 3.2, 2.5)
+
+[sub_resource type="BoxMesh" id="BoxMesh_cap"]
+size = Vector3(2.45, 0.09, 2.45)
+
+[node name="WallBlock" type="StaticBody3D"]
+collision_layer = 1
+collision_mask = 0
+script = ExtResource("1_wall")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.6, 0)
+shape = SubResource("BoxShape3D_default")
+
+[node name="BodyMesh" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.6, 0)
+mesh = SubResource("BoxMesh_body")
+
+[node name="NeonCap" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.245, 0)
+cast_shadow = 0
+mesh = SubResource("BoxMesh_cap")

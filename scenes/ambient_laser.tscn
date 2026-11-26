@@ -1,0 +1,16 @@
+[gd_scene format=3 uid="uid://cambientlaser"]
+
+[ext_resource type="Script" path="res://scripts/ambient_laser.gd" id="1_al"]
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_beam"]
+top_radius = 0.035
+bottom_radius = 0.035
+height = 52.0
+
+[node name="AmbientLaser" type="Node3D"]
+script = ExtResource("1_al")
+
+[node name="BeamMesh" type="MeshInstance3D" parent="."]
+transform = Transform3D(-4.37114e-08, -1, 0, 1, -4.37114e-08, 0, 0, 0, 1, 0, 0, 0)
+cast_shadow = 0
+mesh = SubResource("CylinderMesh_beam")

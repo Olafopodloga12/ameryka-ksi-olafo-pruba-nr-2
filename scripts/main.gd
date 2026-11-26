@@ -425,12 +425,12 @@ func _try_shoot_gun() -> void:
 	if gun_cooldown > 0.0 or not is_instance_valid(local_player) or not local_player.alive:
 		return
 
-	var aim_dir: Vector3 = local_player.get_aim_direction()
-	var start_pos: Vector3 = local_player.global_position + Vector3(0.0, 1.25, 0.0) + aim_dir * 0.9
+	var shoot_dir: Vector3 = local_player.get_flat_shoot_direction()
+	var start_pos: Vector3 = local_player.global_position + Vector3(0.0, 1.15, 0.0) + shoot_dir * 0.9
 	var b_id := "b_%d_%d" % [NetworkManager.my_id, Time.get_ticks_msec()]
 	gun_cooldown = GUN_COOLDOWN_TIME
 
-	_rpc_fire_gun.rpc(b_id, start_pos, aim_dir)
+	_rpc_fire_gun.rpc(b_id, start_pos, shoot_dir)
 
 
 @rpc("any_peer", "call_local", "reliable")
@@ -479,7 +479,7 @@ func _rpc_spawn_twarog(pid: String, pos: Vector3) -> void:
 		return
 	var puddle = TWAROG_SCENE.instantiate()
 	puddle.setup(pid, 2.4, 12.0)
-	puddle.global_position = Vector3(pos.x, 0.03, pos.z)
+	puddle.position = Vector3(pos.x, 0.03, pos.z)
 	fx_container.add_child(puddle)
 	_twarog_puddles.append(puddle)
 

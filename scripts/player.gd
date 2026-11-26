@@ -100,7 +100,7 @@ func _setup_nameplate() -> void:
 	var text_col := Color("#ff3377") if is_killer else Color("#ffffff")
 	name_label.add_theme_color_override("font_color", text_col)
 	name_label.add_theme_color_override("font_shadow_color", border_col)
-	name_label.add_theme_constants_override("shadow_outline_size", 8)
+	name_label.add_theme_constant_override("shadow_outline_size", 8)
 
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = Color(0.02, 0.04, 0.09, 0.85)
@@ -248,6 +248,11 @@ func handle_mouse_motion(relative: Vector2) -> void:
 func get_aim_direction() -> Vector3:
 	var aim_basis := Basis(Vector3.UP, tpp_yaw) * Basis(Vector3.RIGHT, tpp_pitch)
 	return (aim_basis * Vector3(0.0, 0.0, -1.0)).normalized()
+
+
+func get_flat_shoot_direction() -> Vector3:
+	# Bullet always stays level on Y (dir.y == 0), while XZ aim follows mouse yaw
+	return Vector3(-sin(tpp_yaw), 0.0, -cos(tpp_yaw)).normalized()
 
 
 func set_spawn_position(pos: Vector3) -> void:

@@ -14,7 +14,7 @@ var _players_ref: Dictionary = {}
 
 func setup(p_id: String, start_pos: Vector3, dir: Vector3, speed: float, p_killer_id: int, p_is_auth: bool, p_players: Dictionary) -> void:
 	bullet_id = p_id
-	global_position = start_pos
+	position = start_pos
 	velocity = dir.normalized() * speed
 	_killer_id = p_killer_id
 	_is_authoritative = p_is_auth

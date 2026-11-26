@@ -1,6 +1,11 @@
-[gd_scene load_steps=3 format=3 uid="uid://carena3d"]
+[gd_scene load_steps=11 format=3 uid="uid://carena3d"]
 
 [ext_resource type="Script" path="res://scripts/arena.gd" id="1_arena"]
+[ext_resource type="Shader" path="res://shaders/cyber_grid_floor.gdshader" id="2_gridshader"]
+[ext_resource type="PackedScene" uid="uid://cwallblock" path="res://scenes/wall_block.tscn" id="3_wallblock"]
+[ext_resource type="PackedScene" uid="uid://claserwall" path="res://scenes/laser_wall.tscn" id="4_laserwall"]
+[ext_resource type="PackedScene" uid="uid://cambientlaser" path="res://scenes/ambient_laser.tscn" id="5_ambientlaser"]
+[ext_resource type="PackedScene" uid="uid://cburgerprop" path="res://scenes/burger.tscn" id="6_burger"]
 
 [sub_resource type="Environment" id="Environment_cyber"]
 background_mode = 1
@@ -12,6 +17,19 @@ fog_enabled = true
 fog_mode = 1
 fog_light_color = Color(0.0392157, 0.0470588, 0.0862745, 1)
 fog_density = 0.014
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_floor"]
+size = Vector3(54, 0.4, 54)
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_floor"]
+size = Vector2(50, 50)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_floor"]
+render_priority = 0
+shader = ExtResource("2_gridshader")
+shader_parameter/base_color = Color(0.027451, 0.0352941, 0.0745098, 1)
+shader_parameter/cyan_color = Color(0, 0.941176, 1, 1)
+shader_parameter/red_color = Color(1, 0, 0.333333, 1)
 
 [node name="Arena" type="Node3D"]
 script = ExtResource("1_arena")
@@ -30,3 +48,386 @@ shadow_bias = 0.02
 transform = Transform3D(-0.7, -0.4, 0.58, 0, 0.82, 0.57, -0.71, 0.4, -0.57, -25, 20, -25)
 light_color = Color(0, 0.941176, 1, 1)
 light_energy = 0.65
+
+[node name="Floor" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 0
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Floor"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.2, 0)
+shape = SubResource("BoxShape3D_floor")
+
+[node name="FloorMesh" type="MeshInstance3D" parent="Floor"]
+mesh = SubResource("PlaneMesh_floor")
+surface_material_override/0 = SubResource("ShaderMaterial_floor")
+
+[node name="BoundaryWalls" type="Node3D" parent="."]
+
+[node name="WallNorth" parent="BoundaryWalls" instance=ExtResource("3_wallblock")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -24.7)
+block_size = Vector3(52, 3.5, 1)
+body_color = Color(0.0431373, 0.0745098, 0.14902, 1)
+neon_color = Color(1, 0, 0.333333, 1)
+
+[node name="WallSouth" parent="BoundaryWalls" instance=ExtResource("3_wallblock")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 24.7)
+block_size = Vector3(52, 3.5, 1)
+body_color = Color(0.0431373, 0.0745098, 0.14902, 1)
+neon_color = Color(1, 0, 0.333333, 1)
+
+[node name="WallWest" parent="BoundaryWalls" instance=ExtResource("3_wallblock")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -24.7, 0, 0)
+block_size = Vector3(1, 3.5, 50)
+body_color = Color(0.0431373, 0.0745098, 0.14902, 1)
+neon_color = Color(1, 0, 0.333333, 1)
+
+[node name="WallEast" parent="BoundaryWalls" instance=ExtResource("3_wallblock")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24.7, 0, 0)
+block_size = Vector3(1, 3.5, 50)
+body_color = Color(0.0431373, 0.0745098, 0.14902, 1)
+neon_color = Color(1, 0, 0.333333, 1)
+
+[node name="Obstacles" type="Node3D" parent="."]
+
+[node name="PillarNW" parent="Obstacles" instance=ExtResource("3_wallblock")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.5, 0, -3.5)
+block_size = Vector3(2.5, 3.2, 2.5)
+body_color = Color(0.0627451, 0.0823529, 0.156863, 1)
+neon_color = Color(0, 0.941176, 1, 1)
+
+[node name="PillarNE" parent="Obstacles" instance=ExtResource("3_wallblock")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.5, 0, -3.5)
+block_size = Vector3(2.5, 3.2, 2.5)
+body_color = Color(0.0392157, 0.0627451, 0.12549, 1)
+neon_color = Color(1, 0, 0.333333, 1)
+
+[node name="PillarSW" parent="Obstacles" instance=ExtResource("3_wallblock")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.5, 0, 3.5)
+block_size = Vector3(2.5, 3.2, 2.5)
+body_color = Color(0.0627451, 0.0823529, 0.156863, 1)
+neon_color = Color(0, 0.941176, 1, 1)
+
+[node name="PillarSE" parent="Obstacles" instance=ExtResource("3_wallblock")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.5, 0, 3.5)
+block_size = Vector3(2.5, 3.2, 2.5)
+body_color = Color(0.0392157, 0.0627451, 0.12549, 1)
+neon_color = Color(1, 0, 0.333333, 1)
+
+[node name="CrossN" parent="Obstacles" instance=ExtResource("3_wallblock")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -11)
+block_size = Vector3(7, 3.2, 1.5)
+body_color = Color(0.0627451, 0.0823529, 0.156863, 1)
+neon_color = Color(0, 0.941176, 1, 1)
+
+[node name="CrossS" parent="Obstacles" instance=ExtResource("3_wallblock")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 11)
+block_size = Vector3(7, 3.2, 1.5)
+body_color = Color(0.0392157, 0.0627451, 0.12549, 1)
+neon_color = Color(1, 0, 0.333333, 1)
+
+[node name="CrossW" parent="Obstacles" instance=ExtResource("3_wallblock")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -11, 0, 0)
+block_size = Vector3(1.5, 3.2, 7)
+body_color = Color(0.0627451, 0.0823529, 0.156863, 1)
+neon_color = Color(0, 0.941176, 1, 1)
+
+[node name="CrossE" parent="Obstacles" instance=ExtResource("3_wallblock")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 11, 0, 0)
+block_size = Vector3(1.5, 3.2, 7)
+body_color = Color(0.0392157, 0.0627451, 0.12549, 1)
+neon_color = Color(1, 0, 0.333333, 1)
+
+[node name="ZoneNW_WallTop" parent="Obstacles" instance=ExtResource("3_wallblock")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14, 0, -15)
+block_size = Vector3(12, 3.2, 1.5)
+body_color = Color(0.0627451, 0.0823529, 0.156863, 1)
+neon_color = Color(0, 0.941176, 1, 1)
+
+[node name="ZoneNW_WallLeft" parent="Obstacles" instance=ExtResource("3_wallblock")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -18, 0, -8)
+block_size = Vector3(1.5, 3.2, 10)
+body_color = Color(0.0392157, 0.0627451, 0.12549, 1)
+neon_color = Color(1, 0, 0.333333, 1)
+
+[node name="ZoneNW_WallRight" parent="Obstacles" instance=ExtResource("3_wallblock")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 0, -6)
+block_size = Vector3(1.5, 3.2, 6)
+body_color = Color(0.0627451, 0.0823529, 0.156863, 1)
+neon_color = Color(0, 0.941176, 1, 1)
+
+[node name="ZoneNW_Pillar" parent="Obstacles" instance=ExtResource("3_wallblock")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14, 0, -4)
+block_size = Vector3(2.5, 3.2, 2.5)
+body_color = Color(0.0392157, 0.0627451, 0.12549, 1)
+neon_color = Color(1, 0, 0.333333, 1)
+
+[node name="ZoneNW_Corner" parent="Obstacles" instance=ExtResource("3_wallblock")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20, 0, -18)
+block_size = Vector3(3, 3.2, 3)
+body_color = Color(0.0627451, 0.0823529, 0.156863, 1)
+neon_color = Color(0, 0.941176, 1, 1)
+
+[node name="ZoneNE_WallTop" parent="Obstacles" instance=ExtResource("3_wallblock")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14, 0, -15)
+block_size = Vector3(12, 3.2, 1.5)
+body_color = Color(0.0392157, 0.0627451, 0.12549, 1)
+neon_color = Color(1, 0, 0.333333, 1)
+
+[node name="ZoneNE_WallRight" parent="Obstacles" instance=ExtResource("3_wallblock")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 18, 0, -8)
+block_size = Vector3(1.5, 3.2, 10)
+body_color = Color(0.0627451, 0.0823529, 0.156863, 1)
+neon_color = Color(0, 0.941176, 1, 1)
+
+[node name="ZoneNE_WallLeft" parent="Obstacles" instance=ExtResource("3_wallblock")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 0, -6)
+block_size = Vector3(1.5, 3.2, 6)
+body_color = Color(0.0392157, 0.0627451, 0.12549, 1)
+neon_color = Color(1, 0, 0.333333, 1)
+
+[node name="ZoneNE_Pillar" parent="Obstacles" instance=ExtResource("3_wallblock")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14, 0, -4)
+block_size = Vector3(2.5, 3.2, 2.5)
+body_color = Color(0.0627451, 0.0823529, 0.156863, 1)
+neon_color = Color(0, 0.941176, 1, 1)
+
+[node name="ZoneNE_Corner" parent="Obstacles" instance=ExtResource("3_wallblock")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20, 0, -18)
+block_size = Vector3(3, 3.2, 3)
+body_color = Color(0.0392157, 0.0627451, 0.12549, 1)
+neon_color = Color(1, 0, 0.333333, 1)
+
+[node name="ZoneSW_WallBottom" parent="Obstacles" instance=ExtResource("3_wallblock")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14, 0, 15)
+block_size = Vector3(12, 3.2, 1.5)
+body_color = Color(0.0627451, 0.0823529, 0.156863, 1)
+neon_color = Color(0, 0.941176, 1, 1)
+
+[node name="ZoneSW_WallLeft" parent="Obstacles" instance=ExtResource("3_wallblock")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -18, 0, 8)
+block_size = Vector3(1.5, 3.2, 10)
+body_color = Color(0.0392157, 0.0627451, 0.12549, 1)
+neon_color = Color(1, 0, 0.333333, 1)
+
+[node name="ZoneSW_WallRight" parent="Obstacles" instance=ExtResource("3_wallblock")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 0, 6)
+block_size = Vector3(1.5, 3.2, 6)
+body_color = Color(0.0627451, 0.0823529, 0.156863, 1)
+neon_color = Color(0, 0.941176, 1, 1)
+
+[node name="ZoneSW_Pillar" parent="Obstacles" instance=ExtResource("3_wallblock")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14, 0, 4)
+block_size = Vector3(2.5, 3.2, 2.5)
+body_color = Color(0.0392157, 0.0627451, 0.12549, 1)
+neon_color = Color(1, 0, 0.333333, 1)
+
+[node name="ZoneSW_Corner" parent="Obstacles" instance=ExtResource("3_wallblock")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20, 0, 18)
+block_size = Vector3(3, 3.2, 3)
+body_color = Color(0.0627451, 0.0823529, 0.156863, 1)
+neon_color = Color(0, 0.941176, 1, 1)
+
+[node name="ZoneSE_WallBottom" parent="Obstacles" instance=ExtResource("3_wallblock")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14, 0, 15)
+block_size = Vector3(12, 3.2, 1.5)
+body_color = Color(0.0392157, 0.0627451, 0.12549, 1)
+neon_color = Color(1, 0, 0.333333, 1)
+
+[node name="ZoneSE_WallRight" parent="Obstacles" instance=ExtResource("3_wallblock")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 18, 0, 8)
+block_size = Vector3(1.5, 3.2, 10)
+body_color = Color(0.0627451, 0.0823529, 0.156863, 1)
+neon_color = Color(0, 0.941176, 1, 1)
+
+[node name="ZoneSE_WallLeft" parent="Obstacles" instance=ExtResource("3_wallblock")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 0, 6)
+block_size = Vector3(1.5, 3.2, 6)
+body_color = Color(0.0392157, 0.0627451, 0.12549, 1)
+neon_color = Color(1, 0, 0.333333, 1)
+
+[node name="ZoneSE_Pillar" parent="Obstacles" instance=ExtResource("3_wallblock")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14, 0, 4)
+block_size = Vector3(2.5, 3.2, 2.5)
+body_color = Color(0.0627451, 0.0823529, 0.156863, 1)
+neon_color = Color(0, 0.941176, 1, 1)
+
+[node name="ZoneSE_Corner" parent="Obstacles" instance=ExtResource("3_wallblock")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20, 0, 18)
+block_size = Vector3(3, 3.2, 3)
+body_color = Color(0.0392157, 0.0627451, 0.12549, 1)
+neon_color = Color(1, 0, 0.333333, 1)
+
+[node name="CoverNW" parent="Obstacles" instance=ExtResource("3_wallblock")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -7, 0, -20)
+block_size = Vector3(4, 3.2, 1.5)
+body_color = Color(0.0627451, 0.0823529, 0.156863, 1)
+neon_color = Color(0, 0.941176, 1, 1)
+
+[node name="CoverNE" parent="Obstacles" instance=ExtResource("3_wallblock")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7, 0, -20)
+block_size = Vector3(4, 3.2, 1.5)
+body_color = Color(0.0392157, 0.0627451, 0.12549, 1)
+neon_color = Color(1, 0, 0.333333, 1)
+
+[node name="CoverSW" parent="Obstacles" instance=ExtResource("3_wallblock")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -7, 0, 20)
+block_size = Vector3(4, 3.2, 1.5)
+body_color = Color(0.0627451, 0.0823529, 0.156863, 1)
+neon_color = Color(0, 0.941176, 1, 1)
+
+[node name="CoverSE" parent="Obstacles" instance=ExtResource("3_wallblock")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7, 0, 20)
+block_size = Vector3(4, 3.2, 1.5)
+body_color = Color(0.0392157, 0.0627451, 0.12549, 1)
+neon_color = Color(1, 0, 0.333333, 1)
+
+[node name="LaserWalls" type="Node3D" parent="."]
+
+[node name="LaserGate_CenterN" parent="LaserWalls" instance=ExtResource("4_laserwall")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -3.5)
+wall_size = Vector3(4.5, 3.1, 0.32)
+
+[node name="LaserGate_CenterS" parent="LaserWalls" instance=ExtResource("4_laserwall")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 3.5)
+wall_size = Vector3(4.5, 3.1, 0.32)
+
+[node name="LaserGate_NW" parent="LaserWalls" instance=ExtResource("4_laserwall")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -13, 0, -7.5)
+wall_size = Vector3(8.5, 3.1, 0.32)
+
+[node name="LaserGate_NE" parent="LaserWalls" instance=ExtResource("4_laserwall")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 13, 0, -7.5)
+wall_size = Vector3(8.5, 3.1, 0.32)
+
+[node name="LaserGate_SW" parent="LaserWalls" instance=ExtResource("4_laserwall")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -13, 0, 7.5)
+wall_size = Vector3(8.5, 3.1, 0.32)
+
+[node name="LaserGate_SE" parent="LaserWalls" instance=ExtResource("4_laserwall")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 13, 0, 7.5)
+wall_size = Vector3(8.5, 3.1, 0.32)
+
+[node name="AmbientLasers" type="Node3D" parent="."]
+
+[node name="LaserBeam1" parent="AmbientLasers" instance=ExtResource("5_ambientlaser")]
+transform = Transform3D(0.968912, 0, 0.247404, 0, 1, 0, -0.247404, 0, 0.968912, 0, 1.7, -10)
+beam_color = Color(1, 0, 0.33, 0.85)
+move_speed = 0.4
+
+[node name="LaserBeam2" parent="AmbientLasers" instance=ExtResource("5_ambientlaser")]
+transform = Transform3D(0.939373, 0, -0.342898, 0, 1, 0, 0.342898, 0, 0.939373, 0, 2.2, 8)
+beam_color = Color(0, 0.94, 1, 0.78)
+move_speed = -0.3
+
+[node name="LaserBeam3" parent="AmbientLasers" instance=ExtResource("5_ambientlaser")]
+transform = Transform3D(0.988771, 0, 0.149438, 0, 1, 0, -0.149438, 0, 0.988771, 0, 1.3, 16)
+beam_color = Color(1, 0, 0.33, 0.85)
+move_speed = 0.5
+
+[node name="LaserBeam4" parent="AmbientLasers" instance=ExtResource("5_ambientlaser")]
+transform = Transform3D(0.980067, 0, -0.198669, 0, 1, 0, 0.198669, 0, 0.980067, 0, 2.5, -18)
+beam_color = Color(0, 0.94, 1, 0.78)
+move_speed = -0.4
+
+[node name="SpawnPoints" type="Node3D" parent="."]
+
+[node name="Spawn01" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16, 0, -21.5)
+gizmo_extents = 0.8
+
+[node name="Spawn02" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -19)
+gizmo_extents = 0.8
+
+[node name="Spawn03" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 16, 0, -21.5)
+gizmo_extents = 0.8
+
+[node name="Spawn04" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -21.5, 0, -10)
+gizmo_extents = 0.8
+
+[node name="Spawn05" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 0, -14.5)
+gizmo_extents = 0.8
+
+[node name="Spawn06" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 0, -14.5)
+gizmo_extents = 0.8
+
+[node name="Spawn07" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 21.5, 0, -10)
+gizmo_extents = 0.8
+
+[node name="Spawn08" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -19.5, 0, 0)
+gizmo_extents = 0.8
+
+[node name="Spawn09" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -7, 0, 0)
+gizmo_extents = 0.8
+
+[node name="Spawn10" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7, 0, 0)
+gizmo_extents = 0.8
+
+[node name="Spawn11" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 19.5, 0, 0)
+gizmo_extents = 0.8
+
+[node name="Spawn12" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -21.5, 0, 10)
+gizmo_extents = 0.8
+
+[node name="Spawn13" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 0, 14.5)
+gizmo_extents = 0.8
+
+[node name="Spawn14" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 0, 14.5)
+gizmo_extents = 0.8
+
+[node name="Spawn15" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 21.5, 0, 10)
+gizmo_extents = 0.8
+
+[node name="Spawn16" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16, 0, 21.5)
+gizmo_extents = 0.8
+
+[node name="Spawn17" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 19)
+gizmo_extents = 0.8
+
+[node name="Spawn18" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 16, 0, 21.5)
+gizmo_extents = 0.8
+
+[node name="Spawn19" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -13.5, 0, -11)
+gizmo_extents = 0.8
+
+[node name="Spawn20" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 13.5, 0, -11)
+gizmo_extents = 0.8
+
+[node name="Spawn21" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -13.5, 0, 11)
+gizmo_extents = 0.8
+
+[node name="Spawn22" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 13.5, 0, 11)
+gizmo_extents = 0.8
+
+[node name="Spawn23" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+gizmo_extents = 0.8
+
+[node name="Spawn24" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -13, 0, -20)
+gizmo_extents = 0.8
+
+[node name="Props" type="Node3D" parent="."]
+
+[node name="CornerBurger" parent="Props" instance=ExtResource("6_burger")]
+transform = Transform3D(0.297128, -0.0148688, 0.203274, 0.0179928, 0.35955, 0, -0.20302, 0.0101598, 0.296756, 22.8, 0, -22.8)
